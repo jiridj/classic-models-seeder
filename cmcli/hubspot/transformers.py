@@ -3,6 +3,7 @@
 import re
 from typing import Dict, List, Any, Optional
 from decimal import Decimal
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -168,8 +169,15 @@ class HubSpotTransformer:
         # Map status to deal stage
         deal_stage = map_order_status_to_deal_stage(order["status"])
         
-        # Determine close date
-        close_date = order.get("shippedDate") or order.get("orderDate")
+        # Determine close date and convert to HubSpot timestamp format
+        close_date_str = order.get("shippedDate") or order.get("orderDate") or ""
+        # Convert YYYY-MM-DD to milliseconds since epoch (midnight UTC)
+        if close_date_str:
+            close_date_dt = datetime.strptime(close_date_str, "%Y-%m-%d")
+            close_date_timestamp = int(close_date_dt.timestamp() * 1000)
+        else:
+            # Fallback to current date if no date available
+            close_date_timestamp = int(datetime.now().timestamp() * 1000)
         
         # Derive payment status
         payment_status = self._derive_payment_status(order_number, customer_number, total, payments)
@@ -178,7 +186,7 @@ class HubSpotTransformer:
             "dealname": f"Order {order_number} - {customer_name}",
             "amount": str(total),
             "dealstage": deal_stage,
-            "closedate": close_date,
+            "closedate": str(close_date_timestamp),
             "pipeline": "default",
             "erp_order_number": str(order_number),
             "erp_customer_number": str(customer_number),

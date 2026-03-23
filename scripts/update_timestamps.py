@@ -27,15 +27,6 @@ class TimestampUpdater:
     ORIGINAL_END = datetime(2005, 5, 31)
     ORIGINAL_SPAN_DAYS = (ORIGINAL_END - ORIGINAL_START).days  # 876 days
     
-    # New date ranges
-    HISTORICAL_START = datetime(2024, 9, 5)
-    HISTORICAL_END = datetime(2026, 3, 5)
-    HISTORICAL_SPAN_DAYS = (HISTORICAL_END - HISTORICAL_START).days  # 547 days
-    
-    FUTURE_START = datetime(2026, 3, 5)
-    FUTURE_END = datetime(2026, 6, 5)
-    FUTURE_SPAN_DAYS = (FUTURE_END - FUTURE_START).days  # 92 days
-    
     # Statuses that should be mapped to historical dates
     HISTORICAL_STATUSES = {'Shipped', 'Resolved', 'Disputed', 'Cancelled'}
     FUTURE_STATUSES = {'In Process', 'On Hold'}
@@ -46,6 +37,19 @@ class TimestampUpdater:
         self.sql_path = base_path / 'data' / 'sql' / 'mysqlsampledatabase.sql'
         self.orders_json_path = base_path / 'data' / 'json' / 'orders.json'
         self.payments_json_path = base_path / 'data' / 'json' / 'payments.json'
+        
+        # Calculate date ranges dynamically based on current date
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Historical: last 18 months (ending today)
+        self.HISTORICAL_END = today
+        self.HISTORICAL_START = today - timedelta(days=547)  # ~18 months
+        self.HISTORICAL_SPAN_DAYS = (self.HISTORICAL_END - self.HISTORICAL_START).days
+        
+        # Future: next 3 months (starting today)
+        self.FUTURE_START = today
+        self.FUTURE_END = today + timedelta(days=92)  # ~3 months
+        self.FUTURE_SPAN_DAYS = (self.FUTURE_END - self.FUTURE_START).days
         
     def transform_date(self, original_date: datetime, status: str) -> datetime:
         """
