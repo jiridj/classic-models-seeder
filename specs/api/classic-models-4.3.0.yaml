@@ -1,0 +1,2778 @@
+openapi: 3.0.3
+info:
+  title: Classic Models API
+  version: v4.3.0
+  description: |-
+    API for the Classic Models tutorial database with JWT authentication.
+
+    ## Authentication
+
+    This API uses JWT (JSON Web Token) authentication. To access protected endpoints:
+
+    1. **Login**: POST `/classic-models/api/auth/login/` with username and password
+    2. **Use Token**: Include the access token in the Authorization header: `Bearer <access_token>`
+    3. **Refresh**: Use POST `/classic-models/api/auth/refresh/` to get a new access token
+    4. **Logout**: POST `/classic-models/api/auth/logout/` to invalidate the refresh token
+
+    ## Demo User
+
+    For testing purposes, you can use:
+    - **Username**: `demo`
+    - **Password**: `demo123`
+
+    ## Base Path
+
+    All endpoints are served at `/classic-models` base path.
+
+    ## Public Endpoints
+
+    - API documentation (this page)
+    - Authentication endpoints (`/classic-models/api/auth/`)
+
+    ## Protected Endpoints
+
+    - All Classic Models data endpoints (`/classic-models/api/v1/`)
+paths:
+  /classic-models/api/v1/productlines/:
+    get:
+      operationId: list_product_lines
+      description: Retrieve a paginated list of all product line categories in the
+        system.
+      summary: List all product lines
+      tags:
+      - Product Lines
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductLine'
+          description: ''
+    post:
+      operationId: create_product_line
+      description: Add a new product line category to the system.
+      summary: Create a new product line
+      tags:
+      - Product Lines
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductLineRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProductLineRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductLineRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductLine'
+          description: ''
+  /classic-models/api/v1/productlines/{productline}/:
+    delete:
+      operationId: delete_product_line
+      description: Remove a product line from the system.
+      summary: Delete a product line
+      parameters:
+      - in: path
+        name: productline
+        schema:
+          type: string
+        description: A unique value identifying this product line.
+        required: true
+      tags:
+      - Product Lines
+      security:
+      - JWTAuth: []
+      responses:
+        '204':
+          description: No response body
+    get:
+      operationId: get_product_line
+      description: Retrieve detailed information about a specific product line by
+        its identifier.
+      summary: Get a specific product line
+      parameters:
+      - in: path
+        name: productline
+        schema:
+          type: string
+        description: A unique value identifying this product line.
+        required: true
+      tags:
+      - Product Lines
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductLine'
+          description: ''
+    put:
+      operationId: update_product_line
+      description: Update all fields of an existing product line.
+      summary: Update a product line
+      parameters:
+      - in: path
+        name: productline
+        schema:
+          type: string
+        description: A unique value identifying this product line.
+        required: true
+      tags:
+      - Product Lines
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductLineRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProductLineRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductLineRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductLine'
+          description: ''
+    patch:
+      operationId: patch_product_line
+      description: Update specific fields of an existing product line.
+      summary: Partially update a product line
+      parameters:
+      - in: path
+        name: productline
+        schema:
+          type: string
+        description: A unique value identifying this product line.
+        required: true
+      tags:
+      - Product Lines
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProductLineRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProductLineRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProductLineRequest'
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductLine'
+          description: ''
+  /classic-models/api/v1/productlines/{productline}/products/:
+    get:
+      operationId: get_product_line_products
+      description: Retrieve all products in a specific product line category. This
+        endpoint allows browsing products by category.
+      summary: Get products by product line
+      parameters:
+      - in: path
+        name: productline
+        schema:
+          type: string
+        description: The product line identifier
+        required: true
+      tags:
+      - Product Lines
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+          description: ''
+  /classic-models/api/v1/products/:
+    get:
+      operationId: list_products
+      description: Retrieve a paginated list of all products in the catalog with their
+        details.
+      summary: List all products
+      tags:
+      - Products
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+          description: ''
+    post:
+      operationId: create_product
+      description: Add a new product to the catalog with all required information.
+      summary: Create a new product
+      tags:
+      - Products
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+  /classic-models/api/v1/products/{productcode}/:
+    delete:
+      operationId: delete_product
+      description: Remove a product from the catalog.
+      summary: Delete a product
+      parameters:
+      - in: path
+        name: productcode
+        schema:
+          type: string
+        description: A unique value identifying this product.
+        required: true
+      tags:
+      - Products
+      security:
+      - JWTAuth: []
+      responses:
+        '204':
+          description: No response body
+    get:
+      operationId: get_product
+      description: Retrieve detailed information about a specific product by its code.
+      summary: Get a specific product
+      parameters:
+      - in: path
+        name: productcode
+        schema:
+          type: string
+        description: A unique value identifying this product.
+        required: true
+      tags:
+      - Products
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+    put:
+      operationId: update_product
+      description: Update all fields of an existing product in the catalog.
+      summary: Update a product
+      parameters:
+      - in: path
+        name: productcode
+        schema:
+          type: string
+        description: A unique value identifying this product.
+        required: true
+      tags:
+      - Products
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+    patch:
+      operationId: patch_product
+      description: Update specific fields of an existing product.
+      summary: Partially update a product
+      parameters:
+      - in: path
+        name: productcode
+        schema:
+          type: string
+        description: A unique value identifying this product.
+        required: true
+      tags:
+      - Products
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProductRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProductRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProductRequest'
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+  /classic-models/api/v1/products/{productcode}/order-details/:
+    get:
+      operationId: get_product_order_details
+      description: Retrieve all order details (sales) for a specific product. This
+        endpoint provides the complete sales history for the product.
+      summary: Get product order history
+      parameters:
+      - in: path
+        name: productcode
+        schema:
+          type: string
+        description: The product code
+        required: true
+      tags:
+      - Products
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Orderdetail'
+          description: ''
+  /classic-models/api/v1/offices/:
+    get:
+      operationId: list_offices
+      description: Retrieve a paginated list of all company office locations worldwide.
+      summary: List all offices
+      tags:
+      - Offices
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Office'
+          description: ''
+    post:
+      operationId: create_office
+      description: Add a new office location to the company's network.
+      summary: Create a new office
+      tags:
+      - Offices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfficeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OfficeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OfficeRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Office'
+          description: ''
+  /classic-models/api/v1/offices/{officecode}/:
+    delete:
+      operationId: delete_office
+      description: Remove an office location from the company network.
+      summary: Delete an office
+      parameters:
+      - in: path
+        name: officecode
+        schema:
+          type: string
+        description: A unique value identifying this office.
+        required: true
+      tags:
+      - Offices
+      security:
+      - JWTAuth: []
+      responses:
+        '204':
+          description: No response body
+    get:
+      operationId: get_office
+      description: Retrieve detailed information about a specific office by its code.
+      summary: Get a specific office
+      parameters:
+      - in: path
+        name: officecode
+        schema:
+          type: string
+        description: A unique value identifying this office.
+        required: true
+      tags:
+      - Offices
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Office'
+          description: ''
+    put:
+      operationId: update_office
+      description: Update all fields of an existing office location.
+      summary: Update an office
+      parameters:
+      - in: path
+        name: officecode
+        schema:
+          type: string
+        description: A unique value identifying this office.
+        required: true
+      tags:
+      - Offices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfficeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OfficeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OfficeRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Office'
+          description: ''
+    patch:
+      operationId: patch_office
+      description: Update specific fields of an existing office location.
+      summary: Partially update an office
+      parameters:
+      - in: path
+        name: officecode
+        schema:
+          type: string
+        description: A unique value identifying this office.
+        required: true
+      tags:
+      - Offices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOfficeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedOfficeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedOfficeRequest'
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Office'
+          description: ''
+  /classic-models/api/v1/offices/{officecode}/employees/:
+    get:
+      operationId: get_office_employees
+      description: Retrieve all employees working in a specific office. This endpoint
+        supports office management and organizational charts.
+      summary: Get employees by office
+      parameters:
+      - in: path
+        name: officecode
+        schema:
+          type: string
+        description: The office code
+        required: true
+      tags:
+      - Offices
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Employee'
+          description: ''
+  /classic-models/api/v1/employees/:
+    get:
+      operationId: list_employees
+      description: Retrieve a paginated list of all employees in the organization
+        with their details.
+      summary: List all employees
+      tags:
+      - Employees
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Employee'
+          description: ''
+    post:
+      operationId: create_employee
+      description: Add a new employee to the organization with their job details and
+        office assignment.
+      summary: Create a new employee
+      tags:
+      - Employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+  /classic-models/api/v1/employees/{employeenumber}/:
+    delete:
+      operationId: delete_employee
+      description: Remove an employee from the organization.
+      summary: Delete an employee
+      parameters:
+      - in: path
+        name: employeenumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this employee.
+        required: true
+      tags:
+      - Employees
+      security:
+      - JWTAuth: []
+      responses:
+        '204':
+          description: No response body
+    get:
+      operationId: get_employee
+      description: Retrieve detailed information about a specific employee by their
+        employee number.
+      summary: Get a specific employee
+      parameters:
+      - in: path
+        name: employeenumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this employee.
+        required: true
+      tags:
+      - Employees
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+    put:
+      operationId: update_employee
+      description: Update all fields of an existing employee record.
+      summary: Update an employee
+      parameters:
+      - in: path
+        name: employeenumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this employee.
+        required: true
+      tags:
+      - Employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+    patch:
+      operationId: patch_employee
+      description: Update specific fields of an existing employee record.
+      summary: Partially update an employee
+      parameters:
+      - in: path
+        name: employeenumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this employee.
+        required: true
+      tags:
+      - Employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeRequest'
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+  /classic-models/api/v1/employees/{employeenumber}/customers/:
+    get:
+      operationId: get_employee_customers
+      description: Retrieve all customers assigned to a specific sales representative.
+        This endpoint supports sales rep performance tracking and customer management.
+      summary: Get customers by sales rep
+      parameters:
+      - in: path
+        name: employeenumber
+        schema:
+          type: integer
+        description: The employee number of the sales representative
+        required: true
+      tags:
+      - Employees
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Customer'
+          description: ''
+  /classic-models/api/v1/employees/{employeenumber}/reports/:
+    get:
+      operationId: get_employee_reports
+      description: Retrieve all employees reporting to a specific manager. This endpoint
+        supports organizational hierarchy and team management.
+      summary: Get employees by manager
+      parameters:
+      - in: path
+        name: employeenumber
+        schema:
+          type: integer
+        description: The employee number of the manager
+        required: true
+      tags:
+      - Employees
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Employee'
+          description: ''
+  /classic-models/api/v1/customers/:
+    get:
+      operationId: list_customers
+      description: Retrieve a paginated list of all customers with their contact and
+        credit information.
+      summary: List all customers
+      tags:
+      - Customers
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Customer'
+          description: ''
+    post:
+      operationId: create_customer
+      description: Add a new customer to the system with their contact details and
+        credit limit.
+      summary: Create a new customer
+      tags:
+      - Customers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+  /classic-models/api/v1/customers/{customernumber}/:
+    delete:
+      operationId: delete_customer
+      description: Remove a customer from the system.
+      summary: Delete a customer
+      parameters:
+      - in: path
+        name: customernumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this customer.
+        required: true
+      tags:
+      - Customers
+      security:
+      - JWTAuth: []
+      responses:
+        '204':
+          description: No response body
+    get:
+      operationId: get_customer
+      description: Retrieve detailed information about a specific customer by their
+        customer number.
+      summary: Get a specific customer
+      parameters:
+      - in: path
+        name: customernumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this customer.
+        required: true
+      tags:
+      - Customers
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+    put:
+      operationId: update_customer
+      description: Update all fields of an existing customer record.
+      summary: Update a customer
+      parameters:
+      - in: path
+        name: customernumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this customer.
+        required: true
+      tags:
+      - Customers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+    patch:
+      operationId: patch_customer
+      description: Update specific fields of an existing customer record.
+      summary: Partially update a customer
+      parameters:
+      - in: path
+        name: customernumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this customer.
+        required: true
+      tags:
+      - Customers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerRequest'
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+  /classic-models/api/v1/customers/{customernumber}/orders/:
+    get:
+      operationId: get_customer_orders
+      description: Retrieve all orders for a specific customer. This endpoint provides
+        the complete sales history for the customer.
+      summary: Get customer sales history
+      parameters:
+      - in: path
+        name: customernumber
+        schema:
+          type: integer
+        description: The customer number
+        required: true
+      tags:
+      - Customers
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+          description: ''
+  /classic-models/api/v1/customers/{customernumber}/payments/:
+    get:
+      operationId: get_customer_payments
+      description: Retrieve all payments made by a specific customer. This endpoint
+        provides the complete payment history for the customer.
+      summary: Get customer payment history
+      parameters:
+      - in: path
+        name: customernumber
+        schema:
+          type: integer
+        description: The customer number
+        required: true
+      tags:
+      - Customers
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+          description: ''
+  /classic-models/api/v1/orders/:
+    get:
+      operationId: list_orders
+      description: Retrieve a paginated list of all customer orders with their status
+        and details.
+      summary: List all orders
+      tags:
+      - Orders
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+          description: ''
+    post:
+      operationId: create_order
+      description: Create a new customer order with order date, required date, and
+        status information.
+      summary: Create a new order
+      tags:
+      - Orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /classic-models/api/v1/orders/{ordernumber}/:
+    delete:
+      operationId: delete_order
+      description: Remove an order from the system.
+      summary: Delete an order
+      parameters:
+      - in: path
+        name: ordernumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this order.
+        required: true
+      tags:
+      - Orders
+      security:
+      - JWTAuth: []
+      responses:
+        '204':
+          description: No response body
+    get:
+      operationId: get_order
+      description: Retrieve detailed information about a specific order by its order
+        number.
+      summary: Get a specific order
+      parameters:
+      - in: path
+        name: ordernumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this order.
+        required: true
+      tags:
+      - Orders
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+    put:
+      operationId: update_order
+      description: Update all fields of an existing order record.
+      summary: Update an order
+      parameters:
+      - in: path
+        name: ordernumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this order.
+        required: true
+      tags:
+      - Orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+    patch:
+      operationId: patch_order
+      description: Update specific fields of an existing order record.
+      summary: Partially update an order
+      parameters:
+      - in: path
+        name: ordernumber
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        description: A unique value identifying this order.
+        required: true
+      tags:
+      - Orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOrderRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedOrderRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedOrderRequest'
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /classic-models/api/v1/orders/{ordernumber}/order-details/:
+    get:
+      operationId: get_order_order_details
+      description: Retrieve all line items for a specific order. This endpoint supports
+        order fulfillment and invoice generation.
+      summary: Get order details by order
+      parameters:
+      - in: path
+        name: ordernumber
+        schema:
+          type: integer
+        description: The order number
+        required: true
+      tags:
+      - Orders
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Orderdetail'
+          description: ''
+  /classic-models/api/v1/payments/{customerNumber}/{checkNumber}/:
+    delete:
+      operationId: delete_payment
+      description: Remove a payment record from the system.
+      summary: Delete a payment
+      parameters:
+      - in: path
+        name: checkNumber
+        schema:
+          type: string
+        description: The check number
+        required: true
+      - in: path
+        name: customerNumber
+        schema:
+          type: integer
+        description: The customer number
+        required: true
+      tags:
+      - Payments
+      security:
+      - JWTAuth: []
+      responses:
+        '204':
+          description: No response body
+    get:
+      operationId: get_payment
+      description: Retrieve detailed information about a specific payment by customer
+        number and check number.
+      summary: Get a specific payment
+      parameters:
+      - in: path
+        name: checkNumber
+        schema:
+          type: string
+        description: The check number
+        required: true
+      - in: path
+        name: customerNumber
+        schema:
+          type: integer
+        description: The customer number
+        required: true
+      tags:
+      - Payments
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    put:
+      operationId: update_payment
+      description: Update all fields of an existing payment record.
+      summary: Update a payment
+      parameters:
+      - in: path
+        name: checkNumber
+        schema:
+          type: string
+        description: The check number
+        required: true
+      - in: path
+        name: customerNumber
+        schema:
+          type: integer
+        description: The customer number
+        required: true
+      tags:
+      - Payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    patch:
+      operationId: patch_payment
+      description: Update specific fields of an existing payment record.
+      summary: Partially update a payment
+      parameters:
+      - in: path
+        name: checkNumber
+        schema:
+          type: string
+        description: The check number
+        required: true
+      - in: path
+        name: customerNumber
+        schema:
+          type: integer
+        description: The customer number
+        required: true
+      tags:
+      - Payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentRequest'
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /classic-models/api/v1/payments/:
+    get:
+      operationId: list_payments
+      description: Retrieve a paginated list of all customer payment records with
+        amounts and dates.
+      summary: List all payments
+      tags:
+      - Payments
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+          description: ''
+    post:
+      operationId: create_payment
+      description: Record a new customer payment with check number, amount, and payment
+        date.
+      summary: Create a new payment
+      tags:
+      - Payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /classic-models/api/v1/orderdetails/{orderNumber}/{productCode}/:
+    delete:
+      operationId: delete_order_detail
+      description: Remove a line item from an order.
+      summary: Delete an order detail
+      parameters:
+      - in: path
+        name: orderNumber
+        schema:
+          type: integer
+        description: The order number
+        required: true
+      - in: path
+        name: productCode
+        schema:
+          type: string
+        description: The product code
+        required: true
+      tags:
+      - Order Details
+      security:
+      - JWTAuth: []
+      responses:
+        '204':
+          description: No response body
+    get:
+      operationId: get_order_detail
+      description: Retrieve detailed information about a specific order line item
+        by order number and product code.
+      summary: Get a specific order detail
+      parameters:
+      - in: path
+        name: orderNumber
+        schema:
+          type: integer
+        description: The order number
+        required: true
+      - in: path
+        name: productCode
+        schema:
+          type: string
+        description: The product code
+        required: true
+      tags:
+      - Order Details
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orderdetail'
+          description: ''
+    put:
+      operationId: update_order_detail
+      description: Update all fields of an existing order line item.
+      summary: Update an order detail
+      parameters:
+      - in: path
+        name: orderNumber
+        schema:
+          type: integer
+        description: The order number
+        required: true
+      - in: path
+        name: productCode
+        schema:
+          type: string
+        description: The product code
+        required: true
+      tags:
+      - Order Details
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderdetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderdetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderdetailRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orderdetail'
+          description: ''
+    patch:
+      operationId: patch_order_detail
+      description: Update specific fields of an existing order line item.
+      summary: Partially update an order detail
+      parameters:
+      - in: path
+        name: orderNumber
+        schema:
+          type: integer
+        description: The order number
+        required: true
+      - in: path
+        name: productCode
+        schema:
+          type: string
+        description: The product code
+        required: true
+      tags:
+      - Order Details
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOrderdetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedOrderdetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedOrderdetailRequest'
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orderdetail'
+          description: ''
+  /classic-models/api/v1/orderdetails/:
+    get:
+      operationId: list_order_details
+      description: Retrieve a paginated list of all order line items with product
+        and quantity information.
+      summary: List all order details
+      tags:
+      - Order Details
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Orderdetail'
+          description: ''
+    post:
+      operationId: create_order_detail
+      description: Add a new line item to an existing order with product code, quantity,
+        and price.
+      summary: Create a new order detail
+      tags:
+      - Order Details
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderdetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderdetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderdetailRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orderdetail'
+          description: ''
+  /classic-models/api/auth/login/:
+    post:
+      operationId: login
+      description: Authenticate user with username and password to obtain JWT tokens
+      summary: User Login
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Invalid credentials
+          description: ''
+  /classic-models/api/auth/logout/:
+    post:
+      operationId: logout
+      description: Logout user by blacklisting the refresh token
+      summary: User Logout
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+        required: true
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                description: Logout successful
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Invalid token
+          description: ''
+  /classic-models/api/auth/signup/:
+    post:
+      operationId: signup
+      description: Create a new user account
+      summary: User Signup
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignupResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Invalid data
+          description: ''
+  /classic-models/api/auth/refresh/:
+    post:
+      operationId: token_refresh
+      description: Refresh JWT access token using a valid refresh token
+      summary: Refresh Token
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /classic-models/api/auth/me/:
+    get:
+      operationId: get_current_user
+      description: Get information about the currently authenticated user
+      summary: Get Current User
+      tags:
+      - Authentication
+      security:
+      - JWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                description: Authentication required
+          description: ''
+  /classic-models/api/auth/rate-limit-demo/:
+    get:
+      operationId: rate_limit_demo
+      description: Public endpoint to demonstrate rate limiting. Limited to 5 requests
+        per minute per IP.
+      summary: Rate Limit Demo
+      tags:
+      - Authentication
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitDemoResponse'
+          description: ''
+components:
+  schemas:
+    Customer:
+      type: object
+      description: Customer information and contact details
+      properties:
+        customernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        customername:
+          type: string
+          maxLength: 50
+        contactlastname:
+          type: string
+          maxLength: 50
+        contactfirstname:
+          type: string
+          maxLength: 50
+        phone:
+          type: string
+          maxLength: 50
+        addressline1:
+          type: string
+          maxLength: 50
+        addressline2:
+          type: string
+          nullable: true
+          maxLength: 50
+        city:
+          type: string
+          maxLength: 50
+        state:
+          type: string
+          nullable: true
+          maxLength: 50
+        postalcode:
+          type: string
+          nullable: true
+          maxLength: 15
+        country:
+          type: string
+          maxLength: 50
+        creditlimit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        salesrepemployeenumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+      required:
+      - addressline1
+      - city
+      - contactfirstname
+      - contactlastname
+      - country
+      - customername
+      - customernumber
+      - phone
+    CustomerRequest:
+      type: object
+      description: Customer information and contact details
+      properties:
+        customernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        customername:
+          type: string
+          minLength: 1
+          maxLength: 50
+        contactlastname:
+          type: string
+          minLength: 1
+          maxLength: 50
+        contactfirstname:
+          type: string
+          minLength: 1
+          maxLength: 50
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 50
+        addressline1:
+          type: string
+          minLength: 1
+          maxLength: 50
+        addressline2:
+          type: string
+          nullable: true
+          maxLength: 50
+        city:
+          type: string
+          minLength: 1
+          maxLength: 50
+        state:
+          type: string
+          nullable: true
+          maxLength: 50
+        postalcode:
+          type: string
+          nullable: true
+          maxLength: 15
+        country:
+          type: string
+          minLength: 1
+          maxLength: 50
+        creditlimit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        salesrepemployeenumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+      required:
+      - addressline1
+      - city
+      - contactfirstname
+      - contactlastname
+      - country
+      - customername
+      - customernumber
+      - phone
+    Employee:
+      type: object
+      description: Employee information and hierarchy
+      properties:
+        employeenumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        lastname:
+          type: string
+          maxLength: 50
+        firstname:
+          type: string
+          maxLength: 50
+        extension:
+          type: string
+          maxLength: 10
+        email:
+          type: string
+          maxLength: 100
+        jobtitle:
+          type: string
+          maxLength: 50
+        officecode:
+          type: string
+        reportsto:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+      required:
+      - email
+      - employeenumber
+      - extension
+      - firstname
+      - jobtitle
+      - lastname
+      - officecode
+    EmployeeRequest:
+      type: object
+      description: Employee information and hierarchy
+      properties:
+        employeenumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        lastname:
+          type: string
+          minLength: 1
+          maxLength: 50
+        firstname:
+          type: string
+          minLength: 1
+          maxLength: 50
+        extension:
+          type: string
+          minLength: 1
+          maxLength: 10
+        email:
+          type: string
+          minLength: 1
+          maxLength: 100
+        jobtitle:
+          type: string
+          minLength: 1
+          maxLength: 50
+        officecode:
+          type: string
+          minLength: 1
+        reportsto:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+      required:
+      - email
+      - employeenumber
+      - extension
+      - firstname
+      - jobtitle
+      - lastname
+      - officecode
+    LoginRequest:
+      type: object
+      description: Serializer for user login
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
+    LoginResponse:
+      type: object
+      description: Serializer for login response
+      properties:
+        access:
+          type: string
+          description: JWT access token
+        refresh:
+          type: string
+          description: JWT refresh token
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          description: User information
+      required:
+      - access
+      - refresh
+      - user
+    LogoutRequest:
+      type: object
+      description: Serializer for user logout
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+          description: Refresh token to blacklist
+      required:
+      - refresh
+    Office:
+      type: object
+      description: Company office locations
+      properties:
+        officecode:
+          type: string
+          maxLength: 10
+        city:
+          type: string
+          maxLength: 50
+        phone:
+          type: string
+          maxLength: 50
+        addressline1:
+          type: string
+          maxLength: 50
+        addressline2:
+          type: string
+          nullable: true
+          maxLength: 50
+        state:
+          type: string
+          nullable: true
+          maxLength: 50
+        country:
+          type: string
+          maxLength: 50
+        postalcode:
+          type: string
+          maxLength: 15
+        territory:
+          type: string
+          maxLength: 10
+      required:
+      - addressline1
+      - city
+      - country
+      - officecode
+      - phone
+      - postalcode
+      - territory
+    OfficeRequest:
+      type: object
+      description: Company office locations
+      properties:
+        officecode:
+          type: string
+          minLength: 1
+          maxLength: 10
+        city:
+          type: string
+          minLength: 1
+          maxLength: 50
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 50
+        addressline1:
+          type: string
+          minLength: 1
+          maxLength: 50
+        addressline2:
+          type: string
+          nullable: true
+          maxLength: 50
+        state:
+          type: string
+          nullable: true
+          maxLength: 50
+        country:
+          type: string
+          minLength: 1
+          maxLength: 50
+        postalcode:
+          type: string
+          minLength: 1
+          maxLength: 15
+        territory:
+          type: string
+          minLength: 1
+          maxLength: 10
+      required:
+      - addressline1
+      - city
+      - country
+      - officecode
+      - phone
+      - postalcode
+      - territory
+    Order:
+      type: object
+      description: Customer order information
+      properties:
+        ordernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        orderdate:
+          type: string
+          format: date
+        requireddate:
+          type: string
+          format: date
+        shippeddate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          maxLength: 15
+        comments:
+          type: string
+          nullable: true
+        customernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+      required:
+      - customernumber
+      - orderdate
+      - ordernumber
+      - requireddate
+      - status
+    OrderRequest:
+      type: object
+      description: Customer order information
+      properties:
+        ordernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        orderdate:
+          type: string
+          format: date
+        requireddate:
+          type: string
+          format: date
+        shippeddate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          minLength: 1
+          maxLength: 15
+        comments:
+          type: string
+          nullable: true
+        customernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+      required:
+      - customernumber
+      - orderdate
+      - ordernumber
+      - requireddate
+      - status
+    Orderdetail:
+      type: object
+      description: Order line items with product details
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        quantityordered:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        priceeach:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        orderlinenumber:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+        ordernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        productcode:
+          type: string
+      required:
+      - id
+      - orderlinenumber
+      - ordernumber
+      - priceeach
+      - productcode
+      - quantityordered
+    OrderdetailRequest:
+      type: object
+      description: Order line items with product details
+      properties:
+        quantityordered:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        priceeach:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        orderlinenumber:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+        ordernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        productcode:
+          type: string
+          minLength: 1
+      required:
+      - orderlinenumber
+      - ordernumber
+      - priceeach
+      - productcode
+      - quantityordered
+    PatchedCustomerRequest:
+      type: object
+      description: Customer information and contact details
+      properties:
+        customernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        customername:
+          type: string
+          minLength: 1
+          maxLength: 50
+        contactlastname:
+          type: string
+          minLength: 1
+          maxLength: 50
+        contactfirstname:
+          type: string
+          minLength: 1
+          maxLength: 50
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 50
+        addressline1:
+          type: string
+          minLength: 1
+          maxLength: 50
+        addressline2:
+          type: string
+          nullable: true
+          maxLength: 50
+        city:
+          type: string
+          minLength: 1
+          maxLength: 50
+        state:
+          type: string
+          nullable: true
+          maxLength: 50
+        postalcode:
+          type: string
+          nullable: true
+          maxLength: 15
+        country:
+          type: string
+          minLength: 1
+          maxLength: 50
+        creditlimit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        salesrepemployeenumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+    PatchedEmployeeRequest:
+      type: object
+      description: Employee information and hierarchy
+      properties:
+        employeenumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        lastname:
+          type: string
+          minLength: 1
+          maxLength: 50
+        firstname:
+          type: string
+          minLength: 1
+          maxLength: 50
+        extension:
+          type: string
+          minLength: 1
+          maxLength: 10
+        email:
+          type: string
+          minLength: 1
+          maxLength: 100
+        jobtitle:
+          type: string
+          minLength: 1
+          maxLength: 50
+        officecode:
+          type: string
+          minLength: 1
+        reportsto:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+    PatchedOfficeRequest:
+      type: object
+      description: Company office locations
+      properties:
+        officecode:
+          type: string
+          minLength: 1
+          maxLength: 10
+        city:
+          type: string
+          minLength: 1
+          maxLength: 50
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 50
+        addressline1:
+          type: string
+          minLength: 1
+          maxLength: 50
+        addressline2:
+          type: string
+          nullable: true
+          maxLength: 50
+        state:
+          type: string
+          nullable: true
+          maxLength: 50
+        country:
+          type: string
+          minLength: 1
+          maxLength: 50
+        postalcode:
+          type: string
+          minLength: 1
+          maxLength: 15
+        territory:
+          type: string
+          minLength: 1
+          maxLength: 10
+    PatchedOrderRequest:
+      type: object
+      description: Customer order information
+      properties:
+        ordernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        orderdate:
+          type: string
+          format: date
+        requireddate:
+          type: string
+          format: date
+        shippeddate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          minLength: 1
+          maxLength: 15
+        comments:
+          type: string
+          nullable: true
+        customernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+    PatchedOrderdetailRequest:
+      type: object
+      description: Order line items with product details
+      properties:
+        quantityordered:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        priceeach:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        orderlinenumber:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+        ordernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        productcode:
+          type: string
+          minLength: 1
+    PatchedPaymentRequest:
+      type: object
+      description: Customer payment records
+      properties:
+        checknumber:
+          type: string
+          minLength: 1
+          maxLength: 50
+        paymentdate:
+          type: string
+          format: date
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        customernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+    PatchedProductLineRequest:
+      type: object
+      description: Product line category information
+      properties:
+        productline:
+          type: string
+          minLength: 1
+          maxLength: 50
+        textdescription:
+          type: string
+          nullable: true
+          maxLength: 4000
+        htmldescription:
+          type: string
+          nullable: true
+    PatchedProductRequest:
+      type: object
+      description: Product catalog information
+      properties:
+        productcode:
+          type: string
+          minLength: 1
+          maxLength: 15
+        productname:
+          type: string
+          minLength: 1
+          maxLength: 70
+        productscale:
+          type: string
+          minLength: 1
+          maxLength: 10
+        productvendor:
+          type: string
+          minLength: 1
+          maxLength: 50
+        productdescription:
+          type: string
+          minLength: 1
+        quantityinstock:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+        buyprice:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        msrp:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        productline:
+          type: string
+          minLength: 1
+    Payment:
+      type: object
+      description: Customer payment records
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        checknumber:
+          type: string
+          maxLength: 50
+        paymentdate:
+          type: string
+          format: date
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        customernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+      required:
+      - amount
+      - checknumber
+      - customernumber
+      - id
+      - paymentdate
+    PaymentRequest:
+      type: object
+      description: Customer payment records
+      properties:
+        checknumber:
+          type: string
+          minLength: 1
+          maxLength: 50
+        paymentdate:
+          type: string
+          format: date
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        customernumber:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+      required:
+      - amount
+      - checknumber
+      - customernumber
+      - paymentdate
+    Product:
+      type: object
+      description: Product catalog information
+      properties:
+        productcode:
+          type: string
+          maxLength: 15
+        productname:
+          type: string
+          maxLength: 70
+        productscale:
+          type: string
+          maxLength: 10
+        productvendor:
+          type: string
+          maxLength: 50
+        productdescription:
+          type: string
+        quantityinstock:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+        buyprice:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        msrp:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        productline:
+          type: string
+      required:
+      - buyprice
+      - msrp
+      - productcode
+      - productdescription
+      - productline
+      - productname
+      - productscale
+      - productvendor
+      - quantityinstock
+    ProductLine:
+      type: object
+      description: Product line category information
+      properties:
+        productline:
+          type: string
+          maxLength: 50
+        textdescription:
+          type: string
+          nullable: true
+          maxLength: 4000
+        htmldescription:
+          type: string
+          nullable: true
+        image:
+          type: string
+          format: byte
+          readOnly: true
+          nullable: true
+      required:
+      - image
+      - productline
+    ProductLineRequest:
+      type: object
+      description: Product line category information
+      properties:
+        productline:
+          type: string
+          minLength: 1
+          maxLength: 50
+        textdescription:
+          type: string
+          nullable: true
+          maxLength: 4000
+        htmldescription:
+          type: string
+          nullable: true
+      required:
+      - productline
+    ProductRequest:
+      type: object
+      description: Product catalog information
+      properties:
+        productcode:
+          type: string
+          minLength: 1
+          maxLength: 15
+        productname:
+          type: string
+          minLength: 1
+          maxLength: 70
+        productscale:
+          type: string
+          minLength: 1
+          maxLength: 10
+        productvendor:
+          type: string
+          minLength: 1
+          maxLength: 50
+        productdescription:
+          type: string
+          minLength: 1
+        quantityinstock:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+        buyprice:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        msrp:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        productline:
+          type: string
+          minLength: 1
+      required:
+      - buyprice
+      - msrp
+      - productcode
+      - productdescription
+      - productline
+      - productname
+      - productscale
+      - productvendor
+      - quantityinstock
+    RateLimitDemoResponse:
+      type: object
+      description: Serializer for rate limit demo response
+      properties:
+        message:
+          type: string
+          description: Demo message
+        rate_limit:
+          type: string
+          description: Rate limit description
+        timestamp:
+          type: string
+          description: Current timestamp
+      required:
+      - message
+      - rate_limit
+      - timestamp
+    RegisterRequest:
+      type: object
+      description: Serializer for user registration
+      properties:
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+        first_name:
+          type: string
+          minLength: 1
+        last_name:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - first_name
+      - last_name
+      - password
+      - password_confirm
+      - username
+    SignupResponse:
+      type: object
+      description: Serializer for signup response
+      properties:
+        message:
+          type: string
+          description: Success message
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          description: Created user information
+      required:
+      - message
+      - user
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    User:
+      type: object
+      description: Serializer for user information
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_joined
+      - id
+      - username
+  securitySchemes:
+    JWTAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+servers:
+- url: https://qnap-jiri.myqnapcloud.com
+  description: API Server
+tags:
+- name: Authentication
+  description: User authentication and management
+- name: Product Lines
+  description: Product line categories
+- name: Products
+  description: Product catalog
+- name: Offices
+  description: Company office locations
+- name: Employees
+  description: Employee information
+- name: Customers
+  description: Customer information
+- name: Orders
+  description: Customer orders
+- name: Payments
+  description: Customer payments
+- name: Order Details
+  description: Order line items
