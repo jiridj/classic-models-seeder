@@ -56,6 +56,9 @@ htmlcov/
 *.backup
 *.bak
 
+# Generated data files (created by cmcli update)
+data/json/
+
 # Distribution / packaging
 *.whl
 
@@ -71,4 +74,4 @@ dmypy.json
 .pytype/
 
 # Cython
-cython_debug/
+cython_debug/.env

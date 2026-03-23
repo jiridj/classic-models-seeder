@@ -2,12 +2,14 @@
 """
 Classic Models Dataset Timestamp Updater
 
-This script updates timestamps in the Classic Models demo dataset to make them current.
-It transforms dates in both SQL and JSON files while preserving business logic and relationships.
+This script:
+1. Parses the SQL file (with original 2003-2005 dates)
+2. Transforms timestamps to current dates
+3. Generates JSON files with updated data as a local cache
 
 Strategy:
-- Historical orders (Shipped/Resolved/Disputed/Cancelled): Map to last 18 months (2024-09-05 to 2026-03-05)
-- Future orders (In Process/On Hold): Map to next 3 months (2026-03-05 to 2026-06-05)
+- Historical orders (Shipped/Resolved/Disputed/Cancelled): Map to last 18 months
+- Future orders (In Process/On Hold): Map to next 3 months
 - Preserve all date intervals and business logic
 """
 
@@ -15,12 +17,11 @@ import json
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
-import shutil
+from typing import Dict, List, Optional
 
 
 class TimestampUpdater:
-    """Handles timestamp transformation for Classic Models dataset."""
+    """Handles SQL parsing, timestamp transformation, and JSON generation."""
     
     # Original dataset date range
     ORIGINAL_START = datetime(2003, 1, 6)
@@ -35,8 +36,7 @@ class TimestampUpdater:
         """Initialize with base project path."""
         self.base_path = base_path
         self.sql_path = base_path / 'data' / 'sql' / 'mysqlsampledatabase.sql'
-        self.orders_json_path = base_path / 'data' / 'json' / 'orders.json'
-        self.payments_json_path = base_path / 'data' / 'json' / 'payments.json'
+        self.json_dir = base_path / 'data' / 'json'
         
         # Calculate date ranges dynamically based on current date
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -50,477 +50,282 @@ class TimestampUpdater:
         self.FUTURE_START = today
         self.FUTURE_END = today + timedelta(days=92)  # ~3 months
         self.FUTURE_SPAN_DAYS = (self.FUTURE_END - self.FUTURE_START).days
-        
-    def transform_date(self, original_date: datetime, status: str) -> datetime:
-        """
-        Transform a date based on its position in the original timeline and order status.
+    
+    def parse_sql_inserts(self, sql_content: str) -> Dict[str, List[Dict]]:
+        """Parse SQL INSERT statements and extract data.
         
         Args:
-            original_date: Original date from 2003-2005 dataset
-            status: Order status (determines if historical or future)
+            sql_content: String containing SQL statements
             
         Returns:
-            Transformed date in new timeline
+            Dictionary mapping table names to lists of records
         """
+        tables_data = {}
+        
+        # Pattern to match INSERT statements
+        insert_pattern = re.compile(
+            r"insert\s+into\s+(\w+)\s*\(([^)]+)\)\s+values\s+(.*?);(?:\s*$|\s*\n)",
+            re.IGNORECASE | re.MULTILINE
+        )
+        
+        for match in insert_pattern.finditer(sql_content):
+            table_name = match.group(1)
+            columns_str = match.group(2)
+            values_str = match.group(3)
+            
+            # Parse column names
+            columns = [col.strip() for col in columns_str.split(',')]
+            
+            # Parse values
+            records = self._parse_values(values_str, columns)
+            
+            if table_name in tables_data:
+                tables_data[table_name].extend(records)
+            else:
+                tables_data[table_name] = records
+        
+        return tables_data
+    
+    def _parse_values(self, values_str: str, columns: List[str]) -> List[Dict]:
+        """Parse VALUES clause into list of record dictionaries."""
+        records = []
+        i = 0
+        
+        while i < len(values_str):
+            # Skip whitespace and commas
+            while i < len(values_str) and values_str[i] in ' \t\n\r,':
+                i += 1
+            
+            if i >= len(values_str):
+                break
+            
+            # Look for opening parenthesis
+            if values_str[i] == '(':
+                paren_count = 1
+                start = i + 1
+                i += 1
+                in_string = False
+                string_char = None
+                
+                while i < len(values_str) and paren_count > 0:
+                    char = values_str[i]
+                    
+                    if not in_string:
+                        if char in ("'", '"'):
+                            in_string = True
+                            string_char = char
+                        elif char == '(':
+                            paren_count += 1
+                        elif char == ')':
+                            paren_count -= 1
+                            if paren_count == 0:
+                                break
+                    else:
+                        if char == '\\' and i + 1 < len(values_str):
+                            next_char = values_str[i + 1]
+                            if next_char in ("'", '"', '\\', 'n', 'r', 't', '0'):
+                                i += 1
+                        elif char == string_char:
+                            if i + 1 < len(values_str) and values_str[i + 1] == string_char:
+                                i += 1
+                            else:
+                                in_string = False
+                                string_char = None
+                    
+                    i += 1
+                
+                row_str = values_str[start:i]
+                values = self._parse_row_values(row_str)
+                
+                if len(values) == len(columns):
+                    record = dict(zip(columns, values))
+                    records.append(record)
+                
+                i += 1
+            else:
+                i += 1
+        
+        return records
+    
+    def _parse_row_values(self, row_str: str) -> List:
+        """Parse a single row of values from SQL INSERT."""
+        values = []
+        current_value = []
+        in_string = False
+        was_quoted = False
+        string_char = None
+        i = 0
+        
+        while i < len(row_str):
+            char = row_str[i]
+            
+            if not in_string:
+                if char in ("'", '"'):
+                    in_string = True
+                    was_quoted = True
+                    string_char = char
+                    i += 1
+                    continue
+                elif char == ',':
+                    value_str = ''.join(current_value).strip()
+                    values.append(self._parse_value(value_str, was_quoted))
+                    current_value = []
+                    was_quoted = False
+                    i += 1
+                    continue
+                else:
+                    current_value.append(char)
+                    i += 1
+            else:
+                if char == '\\' and i + 1 < len(row_str):
+                    next_char = row_str[i + 1]
+                    if next_char == "'":
+                        current_value.append("'")
+                        i += 2
+                    elif next_char == '"':
+                        current_value.append('"')
+                        i += 2
+                    elif next_char == '\\':
+                        current_value.append('\\')
+                        i += 2
+                    elif next_char == 'n':
+                        current_value.append('\n')
+                        i += 2
+                    elif next_char == 'r':
+                        current_value.append('\r')
+                        i += 2
+                    elif next_char == 't':
+                        current_value.append('\t')
+                        i += 2
+                    elif next_char == '0':
+                        current_value.append('\0')
+                        i += 2
+                    else:
+                        current_value.append(char)
+                        i += 1
+                elif char == string_char:
+                    if i + 1 < len(row_str) and row_str[i + 1] == string_char:
+                        current_value.append(char)
+                        i += 2
+                        continue
+                    else:
+                        in_string = False
+                        string_char = None
+                        i += 1
+                else:
+                    current_value.append(char)
+                    i += 1
+        
+        if current_value:
+            value_str = ''.join(current_value).strip()
+            if value_str:
+                values.append(self._parse_value(value_str, was_quoted))
+        
+        return values
+    
+    def _parse_value(self, value_str: str, is_quoted: bool):
+        """Convert SQL value string to appropriate Python type."""
+        if value_str.upper() == 'NULL':
+            return None
+        
+        if is_quoted:
+            return value_str
+        
+        try:
+            if '.' in value_str:
+                return float(value_str)
+            else:
+                return int(value_str)
+        except ValueError:
+            return value_str
+    
+    def transform_date(self, date_str: str, status: str) -> Optional[str]:
+        """Transform a date based on order status.
+        
+        Args:
+            date_str: Date string in YYYY-MM-DD format
+            status: Order status
+            
+        Returns:
+            Transformed date string in YYYY-MM-DD format, or None
+        """
+        if not date_str:
+            return None
+        
+        original_date = datetime.strptime(date_str, '%Y-%m-%d')
+        
         if status in self.HISTORICAL_STATUSES:
-            # Map to historical range (last 18 months)
+            # Map to historical range
             days_from_start = (original_date - self.ORIGINAL_START).days
             proportion = days_from_start / self.ORIGINAL_SPAN_DAYS
             new_days = int(proportion * self.HISTORICAL_SPAN_DAYS)
-            return self.HISTORICAL_START + timedelta(days=new_days)
+            new_date = self.HISTORICAL_START + timedelta(days=new_days)
         else:
-            # Map to future range (next 3 months)
+            # Map to future range
             days_from_start = (original_date - self.ORIGINAL_START).days
             proportion = days_from_start / self.ORIGINAL_SPAN_DAYS
             new_days = int(proportion * self.FUTURE_SPAN_DAYS)
-            return self.FUTURE_START + timedelta(days=new_days)
-    
-    def parse_date(self, date_str: str) -> Optional[datetime]:
-        """Parse date string in YYYY-MM-DD format."""
-        if not date_str or date_str.upper() == 'NULL':
-            return None
-        # Remove quotes if present
-        date_str = date_str.strip("'\"")
-        return datetime.strptime(date_str, '%Y-%m-%d')
-    
-    def format_date(self, date: Optional[datetime]) -> str:
-        """Format date as YYYY-MM-DD string or NULL."""
-        if date is None:
-            return 'NULL'
-        return date.strftime('%Y-%m-%d')
-    
-    def parse_sql_orders(self, sql_content: str) -> List[Dict]:
-        """
-        Parse orders from SQL INSERT statement using character-by-character parsing.
+            new_date = self.FUTURE_START + timedelta(days=new_days)
         
-        Returns:
-            List of order dictionaries
-        """
-        # Find the orders INSERT statement
-        # Use greedy match (.*) to capture all data up to the LAST semicolon
-        # This handles semicolons inside comment strings correctly
-        pattern = r"insert\s+into\s+orders\s*\([^)]+\)\s+values\s+(.*);$"
-        match = re.search(pattern, sql_content, re.IGNORECASE | re.DOTALL)
-        
-        if not match:
-            raise ValueError("Could not find orders INSERT statement")
-        
-        values_str = match.group(1).strip()
-        
-        print(f"DEBUG: Captured values_str length: {len(values_str)}")
-        print(f"DEBUG: First 100 chars: {values_str[:100]}")
-        print(f"DEBUG: Last 100 chars: {values_str[-100:]}")
-        
-        # NOTE: Do NOT remove outer parentheses - VALUES clause starts with first tuple
-        # The data is: (10100,'2003-01-06',...),(10101,'2003-01-09',...),...
-        # Not: ((10100,'2003-01-06',...),(10101,'2003-01-09',...))
-        
-        # Split by "),(" to get individual order tuples
-        # Use character-by-character parsing to handle escaped quotes
-        orders = []
-        current_tuple = []
-        in_quotes = False
-        escape_next = False
-        paren_depth = 0
-        
-        i = 0
-        while i < len(values_str):
-            char = values_str[i]
-            
-            if escape_next:
-                current_tuple.append(char)
-                escape_next = False
-            elif char == '\\':
-                current_tuple.append(char)
-                escape_next = True
-            elif char == "'" and not escape_next:
-                current_tuple.append(char)
-                in_quotes = not in_quotes
-            elif not in_quotes:
-                if char == '(':
-                    paren_depth += 1
-                    if paren_depth == 1:
-                        current_tuple = []
-                    else:
-                        current_tuple.append(char)
-                elif char == ')':
-                    paren_depth -= 1
-                    if paren_depth == 0:
-                        # End of tuple - parse it
-                        tuple_str = ''.join(current_tuple)
-                        order = self._parse_order_tuple(tuple_str)
-                        if order:
-                            orders.append(order)
-                        current_tuple = []
-                    else:
-                        current_tuple.append(char)
-                else:
-                    current_tuple.append(char)
-            else:
-                current_tuple.append(char)
-            
-            i += 1
-        
-        print(f"Parsed {len(orders)} orders from SQL")
-        return orders
-    
-    def _parse_order_tuple(self, tuple_str: str) -> Optional[Dict]:
-        """Parse a single order tuple string into a dictionary."""
-        # Split by comma, but respect quotes
-        fields = []
-        current_field = []
-        in_quotes = False
-        escape_next = False
-        
-        for char in tuple_str:
-            if escape_next:
-                current_field.append(char)
-                escape_next = False
-            elif char == '\\':
-                current_field.append(char)
-                escape_next = True
-            elif char == "'" and not escape_next:
-                in_quotes = not in_quotes
-            elif char == ',' and not in_quotes:
-                fields.append(''.join(current_field).strip())
-                current_field = []
-            else:
-                current_field.append(char)
-        
-        # Add last field
-        if current_field:
-            fields.append(''.join(current_field).strip())
-        
-        # Validate we have exactly 7 fields
-        if len(fields) != 7:
-            print(f"Warning: Skipping malformed order tuple with {len(fields)} fields (expected 7)")
-            return None
-        
-        try:
-            # Remove quotes from string fields
-            def unquote(s):
-                s = s.strip()
-                if s.upper() == 'NULL':
-                    return None
-                if s.startswith("'") and s.endswith("'"):
-                    return s[1:-1]
-                return s
-            
-            order = {
-                'orderNumber': int(fields[0]),
-                'orderDate': unquote(fields[1]),
-                'requiredDate': unquote(fields[2]),
-                'shippedDate': unquote(fields[3]),
-                'status': unquote(fields[4]),
-                'comments': unquote(fields[5]),
-                'customerNumber': int(fields[6])
-            }
-            return order
-        except (ValueError, IndexError) as e:
-            print(f"Warning: Error parsing order tuple: {e}")
-            return None
-    
-    def parse_sql_payments(self, sql_content: str) -> List[Dict]:
-        """
-        Parse payments from SQL INSERT statement.
-        
-        Returns:
-            List of payment dictionaries
-        """
-        # Find the payments INSERT statement
-        pattern = r"insert\s+into\s+payments\s*\([^)]+\)\s+values\s+(.*?);"
-        match = re.search(pattern, sql_content, re.IGNORECASE | re.DOTALL)
-        
-        if not match:
-            raise ValueError("Could not find payments INSERT statement")
-        
-        values_str = match.group(1)
-        
-        # Parse individual payment tuples
-        # Format: (customerNumber,'checkNumber','paymentDate','amount')
-        tuple_pattern = r"\((\d+),'([^']+)','([^']+)','([^']+)'\)"
-        
-        payments = []
-        for match in re.finditer(tuple_pattern, values_str):
-            payment = {
-                'customerNumber': int(match.group(1)),
-                'checkNumber': match.group(2),
-                'paymentDate': match.group(3),
-                'amount': match.group(4)
-            }
-            payments.append(payment)
-        
-        return payments
+        return new_date.strftime('%Y-%m-%d')
     
     def transform_orders(self, orders: List[Dict]) -> List[Dict]:
-        """
-        Transform order dates while preserving business logic.
-        
-        Args:
-            orders: List of order dictionaries
-            
-        Returns:
-            List of transformed order dictionaries
-        """
+        """Transform order dates while preserving intervals."""
         transformed = []
         
         for order in orders:
             status = order['status']
             
-            # Parse original dates
-            order_date = self.parse_date(order['orderDate'])
-            required_date = self.parse_date(order['requiredDate'])
-            shipped_date = self.parse_date(order['shippedDate']) if order['shippedDate'] else None
+            # Parse dates
+            order_date = datetime.strptime(order['orderDate'], '%Y-%m-%d')
+            required_date = datetime.strptime(order['requiredDate'], '%Y-%m-%d')
+            shipped_date = datetime.strptime(order['shippedDate'], '%Y-%m-%d') if order.get('shippedDate') else None
             
-            # Ensure order_date and required_date are not None (they should never be)
-            if order_date is None or required_date is None:
-                raise ValueError(f"Order {order['orderNumber']} has missing required dates")
-            
-            # Calculate original intervals
+            # Calculate intervals
             required_interval = (required_date - order_date).days
             shipped_interval = (shipped_date - order_date).days if shipped_date else None
             
             # Transform order date
-            new_order_date = self.transform_date(order_date, status)
+            new_order_date_str = self.transform_date(order['orderDate'], status)
+            if not new_order_date_str:
+                continue
+            new_order_date = datetime.strptime(new_order_date_str, '%Y-%m-%d')
             
-            # Preserve intervals for other dates
+            # Preserve intervals
             new_required_date = new_order_date + timedelta(days=required_interval)
             new_shipped_date = new_order_date + timedelta(days=shipped_interval) if shipped_interval is not None else None
             
-            # Create transformed order
-            transformed_order = {
-                'orderNumber': order['orderNumber'],
-                'orderDate': self.format_date(new_order_date),
-                'requiredDate': self.format_date(new_required_date),
-                'shippedDate': self.format_date(new_shipped_date) if new_shipped_date else None,
-                'status': status,
-                'comments': order['comments'],
-                'customerNumber': order['customerNumber']
-            }
+            transformed_order = order.copy()
+            transformed_order['orderDate'] = new_order_date.strftime('%Y-%m-%d')
+            transformed_order['requiredDate'] = new_required_date.strftime('%Y-%m-%d')
+            transformed_order['shippedDate'] = new_shipped_date.strftime('%Y-%m-%d') if new_shipped_date else None
             
             transformed.append(transformed_order)
         
         return transformed
     
-    def transform_payments(self, payments: List[Dict], orders: List[Dict]) -> List[Dict]:
-        """
-        Transform payment dates to align with order dates.
-        
-        Args:
-            payments: List of payment dictionaries
-            orders: List of transformed order dictionaries
-            
-        Returns:
-            List of transformed payment dictionaries
-        """
-        # Create mapping of customer to their orders
-        customer_orders = {}
-        for order in orders:
-            customer_num = order['customerNumber']
-            if customer_num not in customer_orders:
-                customer_orders[customer_num] = []
-            customer_orders[customer_num].append(order)
-        
+    def transform_payments(self, payments: List[Dict]) -> List[Dict]:
+        """Transform payment dates to align with historical timeline."""
         transformed = []
         
         for payment in payments:
-            customer_num = payment['customerNumber']
-            payment_date = self.parse_date(payment['paymentDate'])
+            payment_date = datetime.strptime(payment['paymentDate'], '%Y-%m-%d')
             
-            # Ensure payment_date is not None
-            if payment_date is None:
-                raise ValueError(f"Payment for customer {customer_num} has missing payment date")
+            # Payments are always historical
+            days_from_start = (payment_date - self.ORIGINAL_START).days
+            proportion = days_from_start / self.ORIGINAL_SPAN_DAYS
+            new_days = int(proportion * self.HISTORICAL_SPAN_DAYS)
+            new_payment_date = self.HISTORICAL_START + timedelta(days=new_days)
             
-            # Find the closest order date for this customer to maintain relative timing
-            if customer_num in customer_orders:
-                # Use the first order's transformation as reference
-                first_order = customer_orders[customer_num][0]
-                first_order_date = self.parse_date(first_order['orderDate'])
-                
-                # Calculate offset from original timeline
-                original_offset = (payment_date - self.ORIGINAL_START).days
-                proportion = original_offset / self.ORIGINAL_SPAN_DAYS
-                
-                # Apply same transformation logic as orders
-                # Payments are always historical (already completed)
-                new_days = int(proportion * self.HISTORICAL_SPAN_DAYS)
-                new_payment_date = self.HISTORICAL_START + timedelta(days=new_days)
-            else:
-                # Fallback: use standard historical transformation
-                new_days = int(((payment_date - self.ORIGINAL_START).days / self.ORIGINAL_SPAN_DAYS) * self.HISTORICAL_SPAN_DAYS)
-                new_payment_date = self.HISTORICAL_START + timedelta(days=new_days)
-            
-            transformed_payment = {
-                'customerNumber': customer_num,
-                'checkNumber': payment['checkNumber'],
-                'paymentDate': self.format_date(new_payment_date),
-                'amount': payment['amount']
-            }
+            transformed_payment = payment.copy()
+            transformed_payment['paymentDate'] = new_payment_date.strftime('%Y-%m-%d')
             
             transformed.append(transformed_payment)
         
         return transformed
     
-    def generate_sql_orders_insert(self, orders: List[Dict]) -> str:
-        """Generate SQL INSERT statement for orders."""
-        values = []
-        for order in orders:
-            shipped = f"'{order['shippedDate']}'" if order['shippedDate'] else 'NULL'
-            # Escape single quotes in comments by doubling them
-            if order['comments']:
-                escaped_comments = order['comments'].replace("'", "''")
-                comments = f"'{escaped_comments}'"
-            else:
-                comments = 'NULL'
-            
-            value = (f"({order['orderNumber']},'{order['orderDate']}','{order['requiredDate']}',"
-                    f"{shipped},'{order['status']}',{comments},{order['customerNumber']})")
-            values.append(value)
-        
-        return "insert  into orders(orderNumber,orderDate,requiredDate,shippedDate,status,comments,customerNumber) values \n" + ",".join(values) + ";"
-    
-    def generate_sql_payments_insert(self, payments: List[Dict]) -> str:
-        """Generate SQL INSERT statement for payments."""
-        values = []
-        for payment in payments:
-            value = (f"({payment['customerNumber']},'{payment['checkNumber']}',"
-                    f"'{payment['paymentDate']}','{payment['amount']}')")
-            values.append(value)
-        
-        return "insert  into payments(customerNumber,checkNumber,paymentDate,amount) values \n" + ",".join(values) + ";"
-    
-    def update_sql_file(self, orders: List[Dict], payments: List[Dict]):
-        """Update the SQL file with transformed data."""
-        print(f"Updating SQL file: {self.sql_path}")
-        
-        # Backup original
-        backup_path = self.sql_path.with_suffix('.sql.backup')
-        shutil.copy2(self.sql_path, backup_path)
-        print(f"Created backup: {backup_path}")
-        
-        # Read original content
-        with open(self.sql_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        # Generate new INSERT statements
-        new_orders_insert = self.generate_sql_orders_insert(orders)
-        new_payments_insert = self.generate_sql_payments_insert(payments)
-        
-        # Replace orders INSERT
-        orders_pattern = r"insert\s+into\s+orders\s*\([^)]+\)\s+values\s+.*?;"
-        content = re.sub(orders_pattern, new_orders_insert, content, flags=re.IGNORECASE | re.DOTALL)
-        
-        # Replace payments INSERT
-        payments_pattern = r"insert\s+into\s+payments\s*\([^)]+\)\s+values\s+.*?;"
-        content = re.sub(payments_pattern, new_payments_insert, content, flags=re.IGNORECASE | re.DOTALL)
-        
-        # Write updated content
-        with open(self.sql_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-        
-        print(f"✓ SQL file updated successfully")
-    
-    def update_json_files(self, orders: List[Dict], payments: List[Dict]):
-        """Update JSON files with transformed data."""
-        # Update orders.json
-        print(f"Updating JSON file: {self.orders_json_path}")
-        backup_path = self.orders_json_path.with_suffix('.json.backup')
-        shutil.copy2(self.orders_json_path, backup_path)
-        print(f"Created backup: {backup_path}")
-        
-        with open(self.orders_json_path, 'w', encoding='utf-8') as f:
-            json.dump(orders, f, indent=2)
-        print(f"✓ Orders JSON updated successfully")
-        
-        # Update payments.json
-        print(f"Updating JSON file: {self.payments_json_path}")
-        backup_path = self.payments_json_path.with_suffix('.json.backup')
-        shutil.copy2(self.payments_json_path, backup_path)
-        print(f"Created backup: {backup_path}")
-        
-        with open(self.payments_json_path, 'w', encoding='utf-8') as f:
-            json.dump(payments, f, indent=2)
-        print(f"✓ Payments JSON updated successfully")
-    
-    def validate_consistency(self, sql_orders: List[Dict], json_orders: List[Dict],
-                           sql_payments: List[Dict], json_payments: List[Dict]) -> bool:
-        """
-        Validate consistency between SQL and JSON data.
-        
-        Returns:
-            True if consistent, False otherwise
-        """
-        print("\n=== Validation ===")
-        
-        errors = []
-        
-        # Check order counts
-        if len(sql_orders) != len(json_orders):
-            errors.append(f"Order count mismatch: SQL={len(sql_orders)}, JSON={len(json_orders)}")
-        else:
-            print(f"✓ Order count: {len(sql_orders)}")
-        
-        # Check payment counts
-        if len(sql_payments) != len(json_payments):
-            errors.append(f"Payment count mismatch: SQL={len(sql_payments)}, JSON={len(json_payments)}")
-        else:
-            print(f"✓ Payment count: {len(sql_payments)}")
-        
-        # Check order data consistency
-        for i, (sql_order, json_order) in enumerate(zip(sql_orders, json_orders)):
-            if sql_order['orderNumber'] != json_order['orderNumber']:
-                errors.append(f"Order {i}: orderNumber mismatch")
-            if sql_order['orderDate'] != json_order['orderDate']:
-                errors.append(f"Order {sql_order['orderNumber']}: orderDate mismatch")
-            if sql_order['requiredDate'] != json_order['requiredDate']:
-                errors.append(f"Order {sql_order['orderNumber']}: requiredDate mismatch")
-            if sql_order['shippedDate'] != json_order['shippedDate']:
-                errors.append(f"Order {sql_order['orderNumber']}: shippedDate mismatch")
-        
-        if not errors:
-            print("✓ All orders match between SQL and JSON")
-        
-        # Check payment data consistency
-        for i, (sql_payment, json_payment) in enumerate(zip(sql_payments, json_payments)):
-            if sql_payment['customerNumber'] != json_payment['customerNumber']:
-                errors.append(f"Payment {i}: customerNumber mismatch")
-            if sql_payment['paymentDate'] != json_payment['paymentDate']:
-                errors.append(f"Payment {i}: paymentDate mismatch")
-        
-        if not errors:
-            print("✓ All payments match between SQL and JSON")
-        
-        # Check date ranges - filter out None values
-        parsed_dates = [self.parse_date(o['orderDate']) for o in sql_orders]
-        order_dates = [d for d in parsed_dates if d is not None]
-        if order_dates:
-            min_date = min(order_dates)
-            max_date = max(order_dates)
-        else:
-            raise ValueError("No valid order dates found")
-        
-        print(f"\nDate range: {min_date.date()} to {max_date.date()}")
-        
-        # Count historical vs future orders
-        historical_count = sum(1 for o in sql_orders if o['status'] in self.HISTORICAL_STATUSES)
-        future_count = sum(1 for o in sql_orders if o['status'] in self.FUTURE_STATUSES)
-        
-        print(f"Historical orders (Shipped/Resolved/Disputed/Cancelled): {historical_count}")
-        print(f"Future orders (In Process/On Hold): {future_count}")
-        
-        if errors:
-            print("\n❌ Validation FAILED:")
-            for error in errors[:10]:  # Show first 10 errors
-                print(f"  - {error}")
-            if len(errors) > 10:
-                print(f"  ... and {len(errors) - 10} more errors")
-            return False
-        
-        print("\n✓ Validation PASSED")
-        return True
-    
     def run(self):
-        """Execute the complete timestamp update process."""
+        """Execute the complete update process."""
         print("=" * 60)
         print("Classic Models Dataset Timestamp Updater")
         print("=" * 60)
@@ -530,45 +335,56 @@ class TimestampUpdater:
         with open(self.sql_path, 'r', encoding='utf-8') as f:
             sql_content = f.read()
         
-        # Parse SQL data
-        print("Parsing SQL orders...")
-        sql_orders = self.parse_sql_orders(sql_content)
-        print(f"Found {len(sql_orders)} orders")
+        # Parse all tables
+        print("Parsing SQL file...")
+        tables_data = self.parse_sql_inserts(sql_content)
+        print(f"Found {len(tables_data)} tables")
         
-        print("Parsing SQL payments...")
-        sql_payments = self.parse_sql_payments(sql_content)
-        print(f"Found {len(sql_payments)} payments")
+        # Transform orders and payments
+        if 'orders' in tables_data:
+            print(f"\nTransforming {len(tables_data['orders'])} orders...")
+            tables_data['orders'] = self.transform_orders(tables_data['orders'])
+            print("✓ Orders transformed")
         
-        # Transform data
-        print("\nTransforming orders...")
-        transformed_orders = self.transform_orders(sql_orders)
-        print(f"✓ Transformed {len(transformed_orders)} orders")
+        if 'payments' in tables_data:
+            print(f"Transforming {len(tables_data['payments'])} payments...")
+            tables_data['payments'] = self.transform_payments(tables_data['payments'])
+            print("✓ Payments transformed")
         
-        print("Transforming payments...")
-        transformed_payments = self.transform_payments(sql_payments, transformed_orders)
-        print(f"✓ Transformed {len(transformed_payments)} payments")
+        # Ensure output directory exists
+        self.json_dir.mkdir(parents=True, exist_ok=True)
         
-        # Update files
+        # Write JSON files
         print("\n" + "=" * 60)
-        print("Updating Files")
+        print("Writing JSON Files")
         print("=" * 60)
-        self.update_sql_file(transformed_orders, transformed_payments)
-        self.update_json_files(transformed_orders, transformed_payments)
         
-        # Validate
-        self.validate_consistency(transformed_orders, transformed_orders,
-                                 transformed_payments, transformed_payments)
+        for table_name, records in tables_data.items():
+            output_file = self.json_dir / f"{table_name}.json"
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(records, f, indent=2, ensure_ascii=False)
+            print(f"✓ Created {output_file} with {len(records)} records")
+        
+        # Show date range summary
+        if 'orders' in tables_data:
+            order_dates = [datetime.strptime(o['orderDate'], '%Y-%m-%d') for o in tables_data['orders']]
+            min_date = min(order_dates)
+            max_date = max(order_dates)
+            
+            historical_count = sum(1 for o in tables_data['orders'] if o['status'] in self.HISTORICAL_STATUSES)
+            future_count = sum(1 for o in tables_data['orders'] if o['status'] in self.FUTURE_STATUSES)
+            
+            print(f"\nDate range: {min_date.date()} to {max_date.date()}")
+            print(f"Historical orders: {historical_count}")
+            print(f"Future orders: {future_count}")
         
         print("\n" + "=" * 60)
-        print("✓ Timestamp update completed successfully!")
+        print("✓ Update completed successfully!")
         print("=" * 60)
-        print("\nBackup files created with .backup extension")
-        print("Review the changes and delete backups if satisfied.")
 
 
 def main():
     """Main entry point."""
-    # Determine base path (project root)
     script_dir = Path(__file__).parent
     base_path = script_dir.parent
     
