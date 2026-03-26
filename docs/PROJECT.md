@@ -23,4 +23,5 @@ Examples:
 
 ## Supported Applications
 
-- [Hubspot CRM](/specs/setup/HUBSPOT.md)
+- [HubSpot CRM](/specs/setup/HUBSPOT.md)
+- [Salesforce CRM](/specs/setup/SALESFORCE.md) *(planned)*

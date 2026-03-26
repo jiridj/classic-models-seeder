@@ -34,6 +34,60 @@ class HubSpotConfig(BaseModel):
         return cls(access_token=access_token, account_id=account_id)
 
 
+class SalesforceConfig(BaseModel):
+    """Salesforce SOAP API configuration."""
+    
+    username: str = Field(..., description="Salesforce username")
+    password: str = Field(..., description="Salesforce password")
+    security_token: str = Field(..., description="Salesforce security token")
+    instance_url: str = Field(..., description="Salesforce instance URL")
+    api_version: str = Field(default="v59.0", description="API version")
+    
+    @classmethod
+    def from_env(cls) -> "SalesforceConfig":
+        """Load Salesforce configuration from environment variables.
+        
+        Uses SOAP API authentication (simple username/password/token).
+        """
+        username = os.getenv("SALESFORCE_USERNAME")
+        password = os.getenv("SALESFORCE_PASSWORD")
+        security_token = os.getenv("SALESFORCE_SECURITY_TOKEN")
+        instance_url = os.getenv("SALESFORCE_INSTANCE_URL")
+        api_version = os.getenv("SALESFORCE_API_VERSION", "v59.0")
+        
+        if not username:
+            raise ValueError(
+                "SALESFORCE_USERNAME not found in environment. "
+                "Please set it in your .env file or environment."
+            )
+        
+        if not password:
+            raise ValueError(
+                "SALESFORCE_PASSWORD not found in environment. "
+                "Please set it in your .env file or environment."
+            )
+        
+        if not security_token:
+            raise ValueError(
+                "SALESFORCE_SECURITY_TOKEN not found in environment. "
+                "Please set it in your .env file or environment."
+            )
+        
+        if not instance_url:
+            raise ValueError(
+                "SALESFORCE_INSTANCE_URL not found in environment. "
+                "Please set it in your .env file or environment."
+            )
+        
+        return cls(
+            username=username,
+            password=password,
+            security_token=security_token,
+            instance_url=instance_url,
+            api_version=api_version
+        )
+
+
 class ClassicModelsConfig(BaseModel):
     """Classic Models API configuration."""
     
@@ -85,6 +139,7 @@ class Config:
             load_dotenv(env_file)
         
         self._hubspot: Optional[HubSpotConfig] = None
+        self._salesforce: Optional[SalesforceConfig] = None
         self._classic_models: Optional[ClassicModelsConfig] = None
     
     @property
@@ -93,6 +148,13 @@ class Config:
         if self._hubspot is None:
             self._hubspot = HubSpotConfig.from_env()
         return self._hubspot
+    
+    @property
+    def salesforce(self) -> SalesforceConfig:
+        """Get Salesforce configuration."""
+        if self._salesforce is None:
+            self._salesforce = SalesforceConfig.from_env()
+        return self._salesforce
     
     @property
     def classic_models(self) -> ClassicModelsConfig:

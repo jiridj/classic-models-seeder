@@ -11,14 +11,13 @@ logger = logging.getLogger(__name__)
 class DataLoader:
     """Load Classic Models data from JSON files."""
     
-    def __init__(self, data_dir: Path):
+    def __init__(self, json_dir: Path):
         """Initialize data loader.
         
         Args:
-            data_dir: Path to data directory containing JSON files
+            json_dir: Path to JSON data directory
         """
-        self.data_dir = data_dir
-        self.json_dir = data_dir / "json"
+        self.json_dir = json_dir
         
         if not self.json_dir.exists():
             raise FileNotFoundError(f"JSON data directory not found: {self.json_dir}")

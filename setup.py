@@ -31,6 +31,7 @@ setup(
         "tenacity>=8.2.0",
         "rich>=13.0.0",
         "pydantic>=2.0.0",
+        "simple-salesforce>=1.12.0",
     ],
     entry_points={
         "console_scripts": [
