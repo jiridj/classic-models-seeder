@@ -26,6 +26,11 @@ class HubSpotRateLimitError(HubSpotAPIError):
     pass
 
 
+class HubSpotServerError(HubSpotAPIError):
+    """Server error (5xx) that should be retried."""
+    pass
+
+
 class HubSpotClient:
     """HubSpot API v3 client with rate limiting and retry logic."""
     
@@ -99,6 +104,10 @@ class HubSpotClient:
                     "Permission denied. Check your API scopes and permissions."
                 )
             
+            # Handle server errors (502, 503, 504) - these should be retried
+            if response.status_code in (502, 503, 504):
+                raise HubSpotServerError(f"Server error {response.status_code}: {response.reason}")
+            
             # Raise for other HTTP errors
             response.raise_for_status()
             
@@ -107,13 +116,31 @@ class HubSpotClient:
                 return response.json()
             return {}
             
+        except requests.exceptions.HTTPError as e:
+            # Don't log 404 as error - it's expected when checking if resources exist
+            if e.response.status_code == 404:
+                raise HubSpotAPIError(f"Resource not found: {endpoint}")
+            
+            # For other errors, try to get the error message from response
+            error_detail = ""
+            try:
+                if e.response.content:
+                    error_json = e.response.json()
+                    error_detail = f" - {error_json.get('message', '')}"
+                    if 'errors' in error_json:
+                        error_detail += f" - {error_json['errors']}"
+            except:
+                pass
+            
+            logger.error(f"Request failed: {e}{error_detail}")
+            raise HubSpotAPIError(f"API request failed: {e}{error_detail}")
         except requests.exceptions.RequestException as e:
             logger.error(f"Request failed: {e}")
             raise HubSpotAPIError(f"API request failed: {e}")
     
     @retry_with_backoff(
         max_attempts=3,
-        exceptions=(HubSpotRateLimitError, requests.exceptions.RequestException),
+        exceptions=(HubSpotRateLimitError, HubSpotServerError, requests.exceptions.RequestException),
     )
     def get(self, endpoint: str, params: Optional[Dict] = None) -> Dict[str, Any]:
         """Make a GET request.
@@ -129,7 +156,7 @@ class HubSpotClient:
     
     @retry_with_backoff(
         max_attempts=3,
-        exceptions=(HubSpotRateLimitError, requests.exceptions.RequestException),
+        exceptions=(HubSpotRateLimitError, HubSpotServerError, requests.exceptions.RequestException),
     )
     def post(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Make a POST request.
@@ -145,7 +172,7 @@ class HubSpotClient:
     
     @retry_with_backoff(
         max_attempts=3,
-        exceptions=(HubSpotRateLimitError, requests.exceptions.RequestException),
+        exceptions=(HubSpotRateLimitError, HubSpotServerError, requests.exceptions.RequestException),
     )
     def patch(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Make a PATCH request.
@@ -161,7 +188,7 @@ class HubSpotClient:
     
     @retry_with_backoff(
         max_attempts=3,
-        exceptions=(HubSpotRateLimitError, requests.exceptions.RequestException),
+        exceptions=(HubSpotRateLimitError, HubSpotServerError, requests.exceptions.RequestException),
     )
     def delete(self, endpoint: str) -> Dict[str, Any]:
         """Make a DELETE request.
@@ -197,7 +224,7 @@ class HubSpotClient:
         """Get a property definition.
         
         Args:
-            object_type: Object type (companies, contacts, deals)
+            object_type: Object type (companies, contacts, deals, products)
             property_name: Property name
         
         Returns:
@@ -206,7 +233,10 @@ class HubSpotClient:
         endpoint = f"/crm/v3/properties/{object_type}/{property_name}"
         try:
             return self.get(endpoint)
-        except HubSpotAPIError:
+        except HubSpotAPIError as e:
+            # Don't log 404 errors - property simply doesn't exist yet
+            if "404" not in str(e):
+                logger.debug(f"Error checking property {object_type}.{property_name}: {e}")
             return None
     
     def list_properties(self, object_type: str) -> List[Dict[str, Any]]:
@@ -382,6 +412,44 @@ class HubSpotClient:
         """
         endpoint = f"/crm/v3/objects/{object_type}/batch/update"
         data = {"inputs": objects}
+        return self.post(endpoint, data)
+    
+    # Line item methods
+    
+    def create_line_item(
+        self,
+        properties: Dict[str, Any],
+        associations: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """Create a line item.
+        
+        Args:
+            properties: Line item properties
+            associations: Line item associations (to deals, products)
+        
+        Returns:
+            Created line item data
+        """
+        endpoint = "/crm/v3/objects/line_items"
+        data = {"properties": properties}
+        if associations:
+            data["associations"] = associations
+        return self.post(endpoint, data)
+    
+    def batch_create_line_items(
+        self,
+        line_items: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Batch create line items.
+        
+        Args:
+            line_items: List of line items to create (max 100)
+        
+        Returns:
+            Batch operation results
+        """
+        endpoint = "/crm/v3/objects/line_items/batch/create"
+        data = {"inputs": line_items}
         return self.post(endpoint, data)
 
 # Made with Bob

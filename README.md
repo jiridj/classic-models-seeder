@@ -52,10 +52,13 @@ cmcli update
 
 # HubSpot Commands
 cmcli hubspot verify                    # Verify credentials and permissions
-cmcli hubspot seed                      # Seed all data (companies, contacts, deals)
+cmcli hubspot seed                      # Seed all data (companies, contacts, products, deals, line items)
 cmcli hubspot seed --companies-only     # Seed only companies
 cmcli hubspot seed --contacts-only      # Seed only contacts
+cmcli hubspot seed --products-only      # Seed only products
 cmcli hubspot seed --deals-only         # Seed only deals
+
+# Note: For line items, use the full seed command above (recommended)
 
 # Salesforce Commands
 cmcli salesforce verify                      # Verify credentials and permissions
@@ -74,7 +77,9 @@ cmcli salesforce seed --products-only        # Seed only products
 |----------------|-------------|-------|
 | Companies | Classic Models customers | 122 |
 | Contacts | Customer contact information | 122 |
+| Products | Classic Models products | 110 |
 | Deals | Classic Models orders | 326 |
+| Line Items | Order details | 2,996 |
 
 ### Salesforce
 | Salesforce Object | Source Data | Count |
@@ -107,9 +112,17 @@ cmcli salesforce seed --products-only        # Seed only products
 - Standard fields: firstname, lastname, email, company, phone, jobtitle
 - Custom fields: `erp_customer_number`
 
+**Products ← Products**
+- Standard fields: name, description, price
+- Custom fields: `erp_product_code`, `product_line`, `product_scale`, `product_vendor`, `quantity_in_stock`, `buy_price`, `msrp`
+
 **Deals ← Orders**
 - Standard fields: dealname, amount, dealstage, closedate, pipeline
 - Custom fields: `erp_order_number`, `erp_customer_number`, `payment_status`
+
+**Line Items ← Order Details**
+- Standard fields: quantity, price, name
+- Associations: Links to deals and products
 
 ### Salesforce
 
@@ -135,14 +148,14 @@ cmcli salesforce seed --products-only        # Seed only products
 
 ## Documentation
 
-- [Project Overview](specs/PROJECT.md) - Purpose and architecture
-- [HubSpot Setup](specs/setup/HUBSPOT.md) - Detailed HubSpot setup instructions
-- [Salesforce Setup](specs/setup/SALESFORCE.md) - Detailed Salesforce setup instructions
-- [Classic Models API](specs/api/CLASSIC-MODELS.md) - ERP API documentation
+- [Project Overview](docs/PROJECT.md) - Purpose and architecture
+- [HubSpot Setup](docs/setup/HUBSPOT.md) - Detailed HubSpot setup instructions
+- [Salesforce Setup](docs/setup/SALESFORCE.md) - Detailed Salesforce setup instructions
+- [Products & Line Items](docs/PRODUCTS_AND_LINE_ITEMS.md) - HubSpot product library integration
+- [Classic Models API](docs/api/CLASSIC-MODELS.md) - ERP API documentation
 - [Architecture Guide](docs/architecture.md) - Technical architecture details
 - [API Reference](docs/api-reference.md) - CLI command reference
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
-- [Salesforce Implementation Plan](docs/salesforce-implementation-plan.md) - Technical implementation details
 
 ## Requirements
 
@@ -165,7 +178,7 @@ cmcli --verbose hubspot seed
 
 ## Supported Applications
 
-- ✅ **HubSpot CRM** - Companies, Contacts, Deals
+- ✅ **HubSpot CRM** - Companies, Contacts, Products, Deals, Line Items
 - ✅ **Salesforce** - Accounts, Contacts, Opportunities, Products, Line Items
 - 🔜 **Stripe** - Coming soon
 - 🔜 **Trello** - Coming soon

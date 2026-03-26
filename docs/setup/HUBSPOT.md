@@ -24,10 +24,14 @@ This guide covers setting up a free HubSpot CRM account and configuring it for t
    - `crm.objects.contacts.read` / `crm.objects.contacts.write`
    - `crm.objects.companies.read` / `crm.objects.companies.write`
    - `crm.objects.deals.read` / `crm.objects.deals.write`
+   - `crm.objects.products.read` / `crm.objects.products.write`
+   - `crm.objects.line_items.read` / `crm.objects.line_items.write`
    - `crm.schemas.contacts.read` / `crm.schemas.contacts.write`
    - `crm.schemas.companies.read` / `crm.schemas.companies.write`
    - `crm.schemas.deals.read` / `crm.schemas.deals.write`
+   - `crm.schemas.line_items.read`
    - `crm.objects.owners.read` (optional)
+   - `timeline` (optional)
 6. Click **"Create"** and **copy the key immediately** — it's only shown once
 
 > **Note**: Tickets are not included — support tickets are managed in Trello for this demo.
@@ -72,24 +76,27 @@ cmcli seed hubspot
 
 | Command | Description |
 |---------|-------------|
-| `cmcli verify hubspot` | Verify API credentials and check read/write permissions |
-| `cmcli setup-properties hubspot` | Create custom ERP properties in HubSpot |
-| `cmcli seed hubspot` | Seed all companies, contacts, and deals |
-| `cmcli seed hubspot --companies-only` | Seed only companies |
-| `cmcli seed hubspot --contacts-only` | Seed only contacts (requires companies) |
-| `cmcli seed hubspot --deals-only` | Seed only deals (requires companies and contacts) |
+| `cmcli hubspot verify` | Verify API credentials and check read/write permissions |
+| `cmcli hubspot seed` | Seed all data (companies, contacts, products, deals, line items) |
+| `cmcli hubspot seed --companies-only` | Seed only companies |
+| `cmcli hubspot seed --contacts-only` | Seed only contacts (requires companies) |
+| `cmcli hubspot seed --products-only` | Seed only products |
+| `cmcli hubspot seed --deals-only` | Seed only deals (requires companies and contacts) |
+| `cmcli hubspot seed --line-items-only` | Seed only line items (requires products and deals) |
 
 ## Data Seeded
 
-The `cmcli seed hubspot` command seeds the full Classic Models dataset:
+The `cmcli hubspot seed` command seeds the full Classic Models dataset:
 
 | HubSpot Object | Source | Count |
 |----------------|--------|-------|
 | Companies | Classic Models customers | 122 |
 | Contacts | Classic Models customer contacts | 122 |
+| Products | Classic Models products | 110 |
 | Deals | Classic Models orders | 326 |
+| Line Items | Order details | 2,996 |
 
-Seeding is **idempotent** — re-running skips already-existing records.
+Seeding is **idempotent** — re-running updates existing records (except line items which are created fresh each time).
 
 ## Data Mappings
 
@@ -155,11 +162,23 @@ Seeding is **idempotent** — re-running skips already-existing records.
 ### Contacts
 - `erp_customer_number` (text) — Associated customer number
 
+### Products
+- `erp_product_code` (text) — Product code from Classic Models ERP
+- `product_line` (text) — Product line category (e.g., "Classic Cars", "Motorcycles")
+- `product_scale` (text) — Scale of the model (e.g., "1:10", "1:24")
+- `product_vendor` (text) — Vendor/manufacturer of the product
+- `quantity_in_stock` (number) — Current inventory quantity
+- `buy_price` (number) — Wholesale/buy price
+- `msrp` (number) — Manufacturer's Suggested Retail Price
+
 ### Deals
 - `erp_order_number` (text) — Classic Models order number
 - `erp_customer_number` (text) — Customer reference
 - `payment_status` (dropdown) — `pending` / `paid` / `partial` / `overdue`
 - `payment_link` (text) — Stripe payment link URL
+
+### Line Items
+Line items use standard HubSpot properties (`quantity`, `price`, `name`) and are associated with both deals and products.
 
 ## webMethods Connector Configuration
 
