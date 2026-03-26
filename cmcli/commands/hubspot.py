@@ -54,7 +54,7 @@ def verify(ctx):
         console.print("\n✓ Checking read permissions...", style="dim")
         permissions_ok = True
         
-        for object_type in ["companies", "contacts", "deals"]:
+        for object_type in ["companies", "contacts", "deals", "products"]:
             try:
                 client.list_properties(object_type)
                 console.print(f"  [green]✓ Can read {object_type}[/green]")
@@ -66,7 +66,7 @@ def verify(ctx):
         # (This tests schema read permission which is required for creating custom properties)
         console.print("\n✓ Checking schema access...", style="dim")
         
-        for object_type in ["companies", "contacts", "deals"]:
+        for object_type in ["companies", "contacts", "deals", "products"]:
             try:
                 # List properties (requires schema read permission)
                 props = client.list_properties(object_type)
@@ -122,14 +122,26 @@ def verify(ctx):
     is_flag=True,
     help="Seed only deals (requires companies and contacts to exist)",
 )
+@click.option(
+    "--products-only",
+    is_flag=True,
+    help="Seed only products from product catalog",
+)
+@click.option(
+    "--line-items-only",
+    is_flag=True,
+    help="Seed only line items (requires products and deals to exist)",
+)
 @click.pass_context
-def seed(ctx, companies_only: bool, contacts_only: bool, deals_only: bool):
+def seed(ctx, companies_only: bool, contacts_only: bool, deals_only: bool, products_only: bool, line_items_only: bool):
     """Seed HubSpot CRM with Classic Models data.
     
     This command seeds HubSpot with:
     - Companies (from Classic Models customers)
     - Contacts (from customer contact information)
+    - Products (from product catalog)
     - Deals (from Classic Models orders)
+    - Line Items (linking products to deals)
     
     The seeding process is idempotent - running it multiple times will update
     existing records rather than creating duplicates.
@@ -141,7 +153,7 @@ def seed(ctx, companies_only: bool, contacts_only: bool, deals_only: bool):
         
         # Create client and data loader
         client = HubSpotClient(hubspot_config)
-        data_loader = DataLoader(config.data_dir)
+        data_loader = DataLoader(config.json_dir)
         
         # Create seeder
         seeder = HubSpotSeeder(client, data_loader)
@@ -150,7 +162,7 @@ def seed(ctx, companies_only: bool, contacts_only: bool, deals_only: bool):
         console.print(f"Account ID: {hubspot_config.account_id}\n")
         
         # Determine what to seed
-        seed_all = not (companies_only or contacts_only or deals_only)
+        seed_all = not (companies_only or contacts_only or deals_only or products_only or line_items_only)
         
         results = {}
         
@@ -167,9 +179,17 @@ def seed(ctx, companies_only: bool, contacts_only: bool, deals_only: bool):
                 seeder.ensure_properties_exist(["contacts"])
                 results["contacts"] = seeder.seed_contacts()
             
+            if products_only:
+                seeder.ensure_properties_exist(["products"])
+                results["products"] = seeder.seed_products()
+            
             if deals_only:
                 seeder.ensure_properties_exist(["deals"])
                 results["deals"] = seeder.seed_deals()
+            
+            if line_items_only:
+                # Line items don't need custom properties
+                results["line_items"] = seeder.seed_line_items()
         
         # Display summary
         console.print("\n[bold green]✓ Seeding completed successfully![/bold green]\n")
@@ -198,6 +218,8 @@ def seed(ctx, companies_only: bool, contacts_only: bool, deals_only: bool):
         console.print("  • orders.json")
         console.print("  • orderdetails.json")
         console.print("  • payments.json")
+        console.print("  • products.json")
+        console.print("  • productlines.json")
         sys.exit(1)
     except HubSpotAuthError as e:
         console.print(f"[red]Authentication error: {e}[/red]")

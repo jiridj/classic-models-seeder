@@ -236,6 +236,30 @@ class HubSpotTransformer:
             return "partial"
         else:
             return "pending"
+    
+    def transform_product(self, product: Dict[str, Any]) -> Dict[str, Any]:
+        """Transform a Classic Models product to HubSpot product.
+        
+        Args:
+            product: Product record from Classic Models
+        
+        Returns:
+            HubSpot product properties
+        """
+        properties = {
+            "name": product["productName"],
+            "description": product.get("productDescription", ""),
+            "price": str(product.get("MSRP", "0")),
+            "erp_product_code": product["productCode"],
+            "product_line": product.get("productLine", ""),
+            "product_scale": product.get("productScale", ""),
+            "product_vendor": product.get("productVendor", ""),
+            "quantity_in_stock": product.get("quantityInStock", 0),
+            "buy_price": str(product.get("buyPrice", "0")),
+            "msrp": str(product.get("MSRP", "0")),
+        }
+        
+        return properties
 
 
 def batch_transform_customers_to_companies(
@@ -305,6 +329,28 @@ def batch_transform_orders_to_deals(
     return [
         transformer.transform_order_to_deal(order, order_details, payments)
         for order in orders
+    ]
+
+
+def batch_transform_products(
+    products: List[Dict[str, Any]],
+    transformer: Optional[HubSpotTransformer] = None,
+) -> List[Dict[str, Any]]:
+    """Batch transform products to HubSpot format.
+    
+    Args:
+        products: List of product records
+        transformer: Optional transformer instance to reuse
+    
+    Returns:
+        List of HubSpot product property dictionaries
+    """
+    if transformer is None:
+        transformer = HubSpotTransformer()
+    
+    return [
+        transformer.transform_product(product)
+        for product in products
     ]
 
 # Made with Bob
