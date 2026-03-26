@@ -17,7 +17,7 @@ This guide covers setting up a Salesforce Developer Edition account and configur
 3. Verify your email and set your password
 4. Complete the Trailhead profile setup (optional)
 
-> **Note**: Developer Edition is completely free and includes full API access with 5,000 API calls per 24 hours.
+> **Note**: Developer Edition is completely free and includes full API access with 15,000 API calls per 24 hours.
 
 ## Step 2: Enable SOAP API (CRITICAL)
 
@@ -243,6 +243,57 @@ You need to create custom fields on three standard objects: **Account**, **Conta
 - Description: `Comments and notes from the order.`
 - Click **Next** → **Next** → **Save**
 
+### Product2 Custom Fields
+
+1. Go to **Setup** → **Object Manager** → **Product2**
+2. Click **Fields & Relationships** → **New**
+3. Create these fields:
+
+**Field 1: ERP Product Code** (CRITICAL - External ID)
+- Data Type: **Text**
+- Field Label: `ERP Product Code`
+- Length: `50`
+- Field Name: `ERP_Product_Code` (auto-filled)
+- ✅ Check **External ID**
+- ✅ Check **Unique**
+- ✅ Check **Case insensitive**
+- Description: `Product code from Classic Models ERP system. Used for data synchronization.`
+- Click **Next** → **Next** → **Save**
+
+**Field 2: Product Scale**
+- Data Type: **Text**
+- Field Label: `Product Scale`
+- Length: `50`
+- Field Name: `Product_Scale` (auto-filled)
+- Description: `Product scale/size from ERP system.`
+- Click **Next** → **Next** → **Save**
+
+**Field 3: Product Vendor**
+- Data Type: **Text**
+- Field Label: `Product Vendor`
+- Length: `100`
+- Field Name: `Product_Vendor` (auto-filled)
+- Description: `Product vendor/manufacturer.`
+- Click **Next** → **Next** → **Save**
+
+**Field 4: MSRP**
+- Data Type: **Currency**
+- Field Label: `MSRP`
+- Length: `18` (default)
+- Decimal Places: `2`
+- Field Name: `MSRP` (auto-filled)
+- Description: `Manufacturer's suggested retail price.`
+- Click **Next** → **Next** → **Save**
+
+**Field 5: Buy Price**
+- Data Type: **Currency**
+- Field Label: `Buy Price`
+- Length: `18` (default)
+- Decimal Places: `2`
+- Field Name: `Buy_Price` (auto-filled)
+- Description: `Wholesale/purchase price from vendor.`
+- Click **Next** → **Next** → **Save**
+
 ## Step 9: Verify Setup and Seed Data
 
 ```bash
@@ -262,8 +313,8 @@ cmcli salesforce seed
 | `cmcli salesforce seed` | Seed all accounts, contacts, and opportunities |
 | `cmcli salesforce seed --accounts-only` | Seed only accounts |
 | `cmcli salesforce seed --contacts-only` | Seed only contacts (requires accounts) |
-| `cmcli salesforce seed --opportunities-only` | Seed only opportunities (requires accounts and contacts) |
-| `cmcli salesforce purge` | Delete all seeded data (for testing) |
+| `cmcli salesforce seed --opportunities-only` | Seed only opportunities (requires accounts) |
+| `cmcli salesforce seed --products-only` | Seed only products and pricebook entries |
 
 ## Data Seeded
 
@@ -274,6 +325,9 @@ The `cmcli salesforce seed` command seeds the full Classic Models dataset:
 | Accounts | Classic Models customers | 122 |
 | Contacts | Classic Models employees | 23 |
 | Opportunities | Classic Models orders | 326 |
+| Products (Product2) | Classic Models products | 110 |
+| PricebookEntry | Product prices | 110 |
+| OpportunityLineItem | Order line items | 2,996 |
 
 Seeding is **idempotent** — re-running updates existing records based on ERP IDs.
 
@@ -363,18 +417,32 @@ Seeding is **idempotent** — re-running updates existing records based on ERP I
 - `Payment_Status__c` (Picklist) — `Pending` / `Paid` / `Partial` / `Overdue`
 - `Order_Comments__c` (Long Text Area) — Order comments
 
+### Product2 Custom Fields
+- `ERP_Product_Code__c` (Text, External ID, Unique) — Classic Models product code
+- `Product_Scale__c` (Text) — Product scale/size
+- `Product_Vendor__c` (Text) — Product vendor/manufacturer
+- `MSRP__c` (Currency) — Manufacturer's suggested retail price
+- `Buy_Price__c` (Currency) — Wholesale/purchase price
+
 ## Salesforce Object Relationships
 
 ```mermaid
 graph LR
     A[Account<br/>Customer] --> C[Contact<br/>Employee]
     A --> O[Opportunity<br/>Order]
-    C -.Primary Contact.-> O
+    O --> OLI[OpportunityLineItem<br/>Order Detail]
+    P[Product2<br/>Product] --> PBE[PricebookEntry<br/>Price]
+    PBE --> OLI
+    PB[Pricebook2<br/>Standard] --> PBE
+    PB --> O
 ```
 
 - **Account → Contact**: One-to-Many (via `AccountId` lookup)
 - **Account → Opportunity**: One-to-Many (via `AccountId` lookup)
-- **Contact → Opportunity**: Many-to-Many (via Opportunity Contact Roles)
+- **Opportunity → OpportunityLineItem**: One-to-Many (via `OpportunityId` lookup)
+- **Product2 → PricebookEntry**: One-to-Many (via `Product2Id` lookup)
+- **PricebookEntry → OpportunityLineItem**: One-to-Many (via `PricebookEntryId` lookup)
+- **Pricebook2 → Opportunity**: One-to-Many (via `Pricebook2Id` lookup)
 
 ## webMethods Connector Configuration
 
@@ -389,12 +457,12 @@ graph LR
 
 ## Rate Limits (Developer Edition)
 
-- **API Calls**: 5,000 per 24 hours
+- **API Calls**: 15,000 per 24 hours
 - **Bulk API**: 5,000 records per batch
 - **Data Storage**: 5 MB
 - **File Storage**: 20 MB
 
-The CLI includes automatic retry with exponential backoff for rate limit errors.
+The CLI will display an informative error if the Salesforce rate limit is exceeded.
 
 ## Salesforce API Versions
 
@@ -485,9 +553,10 @@ This means OAuth Username-Password flow is disabled (not SOAP API). This is expe
 - Verify field-level security for custom fields
 
 ### Rate Limit Exceeded
-- Developer Edition has 5,000 API calls per 24 hours
-- Use `--accounts-only`, `--contacts-only`, or `--opportunities-only` flags to seed incrementally
+- Developer Edition has 15,000 API calls per 24 hours
+- Use `--accounts-only`, `--contacts-only`, `--opportunities-only`, or `--products-only` flags to seed incrementally
 - Wait 24 hours for the limit to reset
+- Check actual usage with `cmcli salesforce verify`
 
 ### Custom Fields Not Created
 - Run `cmcli salesforce setup-fields` before seeding

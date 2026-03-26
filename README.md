@@ -27,13 +27,11 @@ Create a `.env` file in the project root:
 HUBSPOT_ACCESS_TOKEN=pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 HUBSPOT_ACCOUNT_ID=12345678
 
-# Salesforce Configuration
-SALESFORCE_CLIENT_ID=your_consumer_key_here
-SALESFORCE_CLIENT_SECRET=your_consumer_secret_here
+# Salesforce Configuration (SOAP API)
 SALESFORCE_USERNAME=your_salesforce_username@example.com
 SALESFORCE_PASSWORD=your_salesforce_password
 SALESFORCE_SECURITY_TOKEN=your_security_token
-SALESFORCE_INSTANCE_URL=https://your-instance.my.salesforce.com
+SALESFORCE_INSTANCE_URL=https://your-instance.develop.my.salesforce.com
 SALESFORCE_API_VERSION=v59.0
 
 # Classic Models API (optional, for future features)
@@ -43,8 +41,8 @@ CLASSIC_MODELS_PASSWORD=demo123
 ```
 
 See setup guides for detailed instructions:
-- [HubSpot Setup Guide](specs/setup/HUBSPOT.md)
-- [Salesforce Setup Guide](specs/setup/SALESFORCE.md)
+- [HubSpot Setup Guide](docs/setup/HUBSPOT.md)
+- [Salesforce Setup Guide](docs/setup/SALESFORCE.md)
 
 ### Usage
 
@@ -60,11 +58,13 @@ cmcli hubspot seed --contacts-only      # Seed only contacts
 cmcli hubspot seed --deals-only         # Seed only deals
 
 # Salesforce Commands
-cmcli salesforce verify                 # Verify credentials and permissions
-cmcli salesforce seed                   # Seed all data (accounts, contacts, opportunities)
-cmcli salesforce seed --accounts-only   # Seed only accounts
-cmcli salesforce seed --contacts-only   # Seed only contacts
-cmcli salesforce seed --opportunities-only  # Seed only opportunities
+cmcli salesforce verify                      # Verify credentials and permissions
+cmcli salesforce setup-fields                # List custom fields to create manually
+cmcli salesforce seed                        # Seed all data
+cmcli salesforce seed --accounts-only        # Seed only accounts
+cmcli salesforce seed --contacts-only        # Seed only contacts
+cmcli salesforce seed --opportunities-only   # Seed only opportunities
+cmcli salesforce seed --products-only        # Seed only products
 ```
 
 ## What Gets Seeded
@@ -82,15 +82,18 @@ cmcli salesforce seed --opportunities-only  # Seed only opportunities
 | Accounts | Classic Models customers | 122 |
 | Contacts | Classic Models employees | 23 |
 | Opportunities | Classic Models orders | 326 |
+| Products (Product2) | Classic Models products | 110 |
+| OpportunityLineItems | Order details | 2,996 |
 
 ## Features
 
 - ✅ **Idempotent seeding** - Safe to run multiple times, updates existing records
-- ✅ **Rate limiting** - Automatic handling of API rate limits (100 req/10s)
-- ✅ **Custom properties** - Automatically creates required custom fields
-- ✅ **Associations** - Links contacts to companies and deals to both
+- ✅ **Rate limiting** - Automatic handling of API rate limits with informative errors
+- ✅ **Custom fields** - Manual creation with detailed setup guide
+- ✅ **Relationships** - Links contacts to accounts, opportunities to accounts/contacts
 - ✅ **Progress tracking** - Real-time progress bars and status updates
 - ✅ **Error handling** - Graceful handling of API errors with retry logic
+- ✅ **Product seeding** - Full product catalog with pricebook entries and line items
 
 ## Data Mappings
 
@@ -119,8 +122,16 @@ cmcli salesforce seed --opportunities-only  # Seed only opportunities
 - Custom fields: `ERP_Employee_Number__c`, `Office_Code__c`, `Reports_To_Employee_Number__c`
 
 **Opportunities ← Orders**
-- Standard fields: Name, Amount, StageName, CloseDate
-- Custom fields: `ERP_Order_Number__c`, `Order_Date__c`, `Required_Date__c`, `Shipped_Date__c`, `Order_Status__c`, `Payment_Status__c`, `Order_Comments__c`
+- Standard fields: Name, Amount, StageName, CloseDate, Pricebook2Id
+- Custom fields: `ERP_Order_Number__c`, `ERP_Customer_Number__c`, `Order_Date__c`, `Required_Date__c`, `Shipped_Date__c`, `Order_Status__c`, `Payment_Status__c`, `Order_Comments__c`
+
+**Products (Product2) ← Products**
+- Standard fields: Name, ProductCode, Description, IsActive, Family
+- Custom fields: `ERP_Product_Code__c`, `Product_Scale__c`, `Product_Vendor__c`, `MSRP__c`, `Buy_Price__c`
+
+**OpportunityLineItems ← Order Details**
+- Standard fields: OpportunityId, PricebookEntryId, Quantity, UnitPrice, Description
+- Links products to opportunities with quantities and prices
 
 ## Documentation
 
@@ -137,7 +148,7 @@ cmcli salesforce seed --opportunities-only  # Seed only opportunities
 
 - Python 3.9 or higher
 - **For HubSpot**: HubSpot account (free tier supported) with API access token
-- **For Salesforce**: Salesforce account (Developer Edition supported) with Connected App credentials
+- **For Salesforce**: Salesforce Developer Edition (free) with SOAP API enabled
 
 ## Development
 
@@ -155,7 +166,7 @@ cmcli --verbose hubspot seed
 ## Supported Applications
 
 - ✅ **HubSpot CRM** - Companies, Contacts, Deals
-- ✅ **Salesforce** - Accounts, Contacts, Opportunities
+- ✅ **Salesforce** - Accounts, Contacts, Opportunities, Products, Line Items
 - 🔜 **Stripe** - Coming soon
 - 🔜 **Trello** - Coming soon
 
