@@ -64,9 +64,11 @@ def cli(ctx, verbose: bool, quiet: bool):
 # Import and register command groups
 from cmcli.commands.update import update
 from cmcli.commands.hubspot import hubspot
+from cmcli.commands.salesforce import salesforce
 
 cli.add_command(update)
 cli.add_command(hubspot)
+cli.add_command(salesforce)
 
 
 if __name__ == "__main__":
