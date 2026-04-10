@@ -2,12 +2,13 @@
 
 import click
 import sys
+import logging
 from pathlib import Path
 from typing import Optional
 
 from cmcli import __version__
 from cmcli.utils.logging import setup_logging, get_logger
-from cmcli.config import get_config
+from cmcli.config import get_config, Config
 
 
 # Global context object to share state between commands
@@ -15,10 +16,10 @@ class Context:
     """CLI context object."""
     
     def __init__(self):
-        self.verbose = False
-        self.quiet = False
-        self.config = None
-        self.logger = None
+        self.verbose: bool = False
+        self.quiet: bool = False
+        self.config: Optional[Config] = None
+        self.logger: Optional[logging.Logger] = None
 
 
 pass_context = click.make_pass_decorator(Context, ensure=True)
@@ -65,10 +66,12 @@ def cli(ctx, verbose: bool, quiet: bool):
 from cmcli.commands.update import update
 from cmcli.commands.hubspot import hubspot
 from cmcli.commands.salesforce import salesforce
+from cmcli.commands.api import api
 
 cli.add_command(update)
 cli.add_command(hubspot)
 cli.add_command(salesforce)
+cli.add_command(api)
 
 
 if __name__ == "__main__":

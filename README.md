@@ -34,10 +34,16 @@ SALESFORCE_SECURITY_TOKEN=your_security_token
 SALESFORCE_INSTANCE_URL=https://your-instance.develop.my.salesforce.com
 SALESFORCE_API_VERSION=v59.0
 
-# Classic Models API (optional, for future features)
+# Classic Models API (optional, for API timestamp updates)
 CLASSIC_MODELS_API_URL=http://localhost:8000/classic-models
 CLASSIC_MODELS_USERNAME=demo
 CLASSIC_MODELS_PASSWORD=demo123
+
+# Optional: Disable SSL verification for self-signed certificates (development only)
+CLASSIC_MODELS_VERIFY_SSL=false
+
+# Optional: Enable rate limiting (requests per 10 seconds, 0 = disabled)
+CLASSIC_MODELS_RATE_LIMIT=0
 ```
 
 See setup guides for detailed instructions:
@@ -49,6 +55,13 @@ See setup guides for detailed instructions:
 ```bash
 # Update timestamps in dataset to current dates
 cmcli update
+
+# Classic Models API Commands
+cmcli api verify                             # Verify API connection and credentials
+cmcli api update-timestamps                  # Update timestamps in API database
+cmcli api update-timestamps --dry-run        # Preview changes without updating
+cmcli api update-timestamps --orders-only    # Update only orders
+cmcli api update-timestamps --payments-only  # Update only payments
 
 # HubSpot Commands
 cmcli hubspot verify                    # Verify credentials and permissions
@@ -152,7 +165,7 @@ cmcli salesforce seed --products-only        # Seed only products
 - [HubSpot Setup](docs/setup/HUBSPOT.md) - Detailed HubSpot setup instructions
 - [Salesforce Setup](docs/setup/SALESFORCE.md) - Detailed Salesforce setup instructions
 - [Products & Line Items](docs/PRODUCTS_AND_LINE_ITEMS.md) - HubSpot product library integration
-- [Classic Models API](docs/api/CLASSIC-MODELS.md) - ERP API documentation
+- [Classic Models API](docs/api/CLASSIC-MODELS.md) - ERP API documentation and timestamp updates
 - [Architecture Guide](docs/architecture.md) - Technical architecture details
 - [API Reference](docs/api-reference.md) - CLI command reference
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions

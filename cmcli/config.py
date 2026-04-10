@@ -94,6 +94,7 @@ class ClassicModelsConfig(BaseModel):
     api_url: str = Field(..., description="Classic Models API base URL")
     username: str = Field(..., description="API username")
     password: str = Field(..., description="API password")
+    verify_ssl: bool = Field(default=True, description="Verify SSL certificates")
     
     @classmethod
     def from_env(cls) -> "ClassicModelsConfig":
@@ -101,6 +102,8 @@ class ClassicModelsConfig(BaseModel):
         api_url = os.getenv("CLASSIC_MODELS_API_URL")
         username = os.getenv("CLASSIC_MODELS_USERNAME")
         password = os.getenv("CLASSIC_MODELS_PASSWORD")
+        verify_ssl_str = os.getenv("CLASSIC_MODELS_VERIFY_SSL", "true").lower()
+        verify_ssl = verify_ssl_str in ("true", "1", "yes")
         
         if not api_url:
             raise ValueError(
@@ -120,7 +123,12 @@ class ClassicModelsConfig(BaseModel):
                 "Please set it in your .env file or environment."
             )
         
-        return cls(api_url=api_url, username=username, password=password)
+        return cls(
+            api_url=api_url,
+            username=username,
+            password=password,
+            verify_ssl=verify_ssl
+        )
 
 
 class Config:
